@@ -1,5 +1,5 @@
 BootStrap: docker
-From: continuumio/miniconda:latest
+From: continuumio/miniconda3:latest
 IncludeCmd: yes
 
 %post
