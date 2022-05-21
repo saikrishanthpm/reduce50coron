@@ -1,0 +1,44 @@
+BootStrap: docker
+From: continuumio/miniconda:latest
+IncludeCmd: yes
+
+%post
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# adapted from https://hpc.nih.gov/apps/singularity.html
+# this will install all necessary packages and prepare the container
+    apt-get -y update
+    apt-get -y install make gcc zlib1g-dev libncurses5-dev git
+    export PATH=/opt/conda/bin:$PATH
+    conda install --yes -c astropy jupyter-lab  nb_conda_kernels matplotlib scipy
+    conda clean --index-cache --tarballs --packages --yes
+
+    wget https://github.com/seawander/centerRadon/archive/refs/tags/v1.0.tar.gz \
+            && tar -xf v1.0.tar.gz\
+            && cd centerRadon-1.0 \
+            && python setup.py install
+
+    wget https://github.com/seawander/nmf_imaging/archive/refs/tags/v2.0.tar.gz \
+                    && tar -xf v2.0.tar.gz\
+                    && cd nmf_imaging-2.0 \
+                    && python setup.py install
+
+    git clone https://github.com/seawander/NonnegMFPy\
+                    &&    cd  NonnegMFPy\
+                    && python setup.py develop
+    git clone https://bitbucket.org/pyKLIP/pyklip.git\
+                    &&    cd  pyklip\
+                    && python setup.py develop
+    mkdir /data /resources
+
+%runscript
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# this text code will run whenever the container
+# is called as an executable or with `singularity run`
+
+
+%environment
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# This sets global environment variables for anything run within the container
+export PATH="/opt/conda/bin:/usr/local/bin:/usr/bin:/bin:"
+unset CONDA_DEFAULT_ENV
+export ANACONDA_HOME=/opt/conda 
