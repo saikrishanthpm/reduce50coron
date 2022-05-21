@@ -24,7 +24,7 @@ IncludeCmd: yes
 
     git clone https://github.com/seawander/NonnegMFPy\
                     &&    cd  NonnegMFPy\
-                    && python setup.py develop
+                    && python setup.py install
     git clone https://bitbucket.org/pyKLIP/pyklip.git\
                     &&    cd  pyklip\
                     && python setup.py develop
