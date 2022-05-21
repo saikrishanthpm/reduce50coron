@@ -6,7 +6,7 @@ IncludeCmd: yes
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # adapted from https://hpc.nih.gov/apps/singularity.html
 # this will install all necessary packages and prepare the container
-    apt-get -y update
+    apt-get -y update --allow-releaseinfo-change
     apt-get -y install make gcc zlib1g-dev libncurses5-dev git
     export PATH=/opt/conda/bin:$PATH
     conda install --yes -c astropy jupyter-lab  nb_conda_kernels matplotlib scipy
