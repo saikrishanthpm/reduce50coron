@@ -15,7 +15,7 @@ IncludeCmd: yes
     wget https://github.com/seawander/centerRadon/archive/refs/tags/v1.0.tar.gz \
             && tar -xf v1.0.tar.gz\
             && cd centerRadon-1.0 \
-            && python setup.py install
+            && python setup.py develop
 
     wget https://github.com/seawander/nmf_imaging/archive/refs/tags/v2.0.tar.gz \
                     && tar -xf v2.0.tar.gz\
