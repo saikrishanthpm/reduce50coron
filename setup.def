@@ -42,3 +42,4 @@ IncludeCmd: yes
 export PATH="/opt/conda/bin:/usr/local/bin:/usr/bin:/bin:"
 unset CONDA_DEFAULT_ENV
 export ANACONDA_HOME=/opt/conda 
+export datapath=/groups/douglase/Hubble/STIS/WEDGEA1_0 #UA HPC path, replace this with data download from cyverse or zenodo
