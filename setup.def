@@ -9,7 +9,7 @@ IncludeCmd: yes
     apt-get -y update --allow-releaseinfo-change
     apt-get -y install make gcc zlib1g-dev libncurses5-dev git
     export PATH=/opt/conda/bin:$PATH
-    conda install --yes -c astropy jupyter  nb_conda_kernels matplotlib scipy
+    conda install --yes -c astropy jupyter  nb_conda_kernels matplotlib scipy psutil
     conda clean --index-cache --tarballs --packages --yes
 
     wget https://github.com/seawander/centerRadon/archive/refs/tags/v1.0.tar.gz \
