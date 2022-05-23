@@ -13,11 +13,13 @@ IncludeCmd: yes
     conda clean --index-cache --tarballs --packages --yes
     pip install psutil
     
+    #install center radon:
     wget https://github.com/seawander/centerRadon/archive/refs/tags/v1.0.tar.gz \
             && tar -xf v1.0.tar.gz\
             && cd centerRadon-1.0 \
             && python setup.py develop
-
+            
+    #install non-negative matrix PSF subtraction packages:
     wget https://github.com/seawander/nmf_imaging/archive/refs/tags/v2.0.tar.gz \
                     && tar -xf v2.0.tar.gz\
                     && cd nmf_imaging-2.0 \
@@ -26,6 +28,8 @@ IncludeCmd: yes
     git clone https://github.com/seawander/NonnegMFPy\
                     &&    cd  NonnegMFPy\
                     && python setup.py install
+                    
+    #install latest version of pyKLIP
     git clone https://bitbucket.org/pyKLIP/pyklip.git\
                     &&    cd  pyklip\
                     && python setup.py develop
