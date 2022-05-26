@@ -33,6 +33,9 @@ IncludeCmd: yes
     git clone https://bitbucket.org/pyKLIP/pyklip.git\
                     &&    cd  pyklip\
                     && python setup.py develop
+    
+    %install poppy (for contrast curves)
+    pip install poppy 
     mkdir /data /resources
 
 %runscript
