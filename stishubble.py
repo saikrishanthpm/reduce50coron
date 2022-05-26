@@ -308,7 +308,7 @@ def checkfornans (dataRA):
                     print("There is a np.nan at row ", row, "column", col)
                     assert False
     
-def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB ) : # Data Cube (TODO: WCS)
+def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Data Cube (TODO: WCS)
 
     import warnings    
     warnings.simplefilter('ignore', UserWarning)
@@ -359,6 +359,8 @@ def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB ) : # Data Cube (TOD
     print("nuFRRAbo.shape : ", nuFRRAbo.shape)
     #print("nuFRRAbo       : {\n", nuFRRAbo, "}")
     HDU      = fits.PrimaryHDU ( nuFRRAbo )
+    if header is not None:
+        HDU.header = header
     HDUL     = fits.HDUList ( [ HDU ] )
     if pyklipB and not nmfB :
         oFN  = "pyk_nuAllResidFRbo.fits" # North-Up All Residual Frames By Order
