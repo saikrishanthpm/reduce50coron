@@ -1,10 +1,3 @@
-##################################################
-# Title:    stishubble.py                        #
-# Author:   Romert M Thompson                    #
-# Date:     Oct 19 2021                          #
-# Function: Hubble STIS Instrument Data Pipeline #
-##################################################
-
 from pyklip.instruments.Instrument import Data
 import numpy as np
 import astropy.io.fits as fits
@@ -22,8 +15,6 @@ import statistics
 from astropy import stats
 from pyklip.klip import rotate as pyklipRotate
 import psutil
-cpuCount   = psutil.cpu_count(logical = False)
-print("cpuCount : ", cpuCount)
 from multiprocessing import Pool
 #https://www.stsci.edu/hst/instrumentation/stis/observing-strategies/available-modes/stis-bar5
 #"The wedges vary in width from 0.5 to 3.0 arcseconds over their 50 arcseconds length"
@@ -31,15 +22,103 @@ from multiprocessing import Pool
 #SLOPE     = 0.025 # (1/40)
 SLOPE      = (((3.0 - 0.5)/2)/50) # Equals 0.025 Equals 1/40
 PLATESCALE = 0.05
+cpuCount   = psutil.cpu_count(logical = False)
+print("cpuCount : ", cpuCount)
 
 
-
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////
 def parallelfunction (    
         parallelTimerIndex ,
         parallelT,
         maskFR        
     ) :
-    #print("parallelTimerIndex : ", parallelTimerIndex)
+    print("parallelTimerIndex : ", parallelTimerIndex)
+    #np.array ( HDUL [ ii + 0 ] .data ) , # SCI.data
+    #np.array ( HDUL [ ii + 1 ] .data ) , # ERR.data
+    #np.array ( HDUL [ ii + 2 ] .data ) , #  DQ.data
+    #usePos  ,
+    #CCDGAIN ,
+    #EXPTIME
+    #print("parallelT[0] : ", parallelT[0] )
+    #print("parallelT[1] : ", parallelT[1] )
+    #print("parallelT[2] : ", parallelT[2] )
+    #print("parallelT[3] : ", parallelT[3] )
+    #print("parallelT[4] : ", parallelT[4] )
+    #print("parallelT[5] : ", parallelT[5] )
     SCIdataFR = parallelT [  0 ]
     ERRdataFR = parallelT [  1 ]
     DQ_dataFR = parallelT [  2 ]
@@ -105,7 +184,7 @@ def parallelfunction (
     center determination method described in Ref. 54 after the above-mentioned
     median filtering. We took the SCI extension data, start center searching from
     the instrumental center given by its CRPIX1 and CRPIX2 header values; to make
-    use of the 45 degree and 135 degree major diffraction spikes (Fig. 3) for the
+    use of the 45 degree and 135 degree major diffraction spikes (Fig. 3) for the
     alignment of the STIS images"
     """
     # Get radonCenter's determination of the stellar point
@@ -184,6 +263,31 @@ def parallelfunction (
         wcs      = None # TODO add wcs to this
     )
     #print("ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
+    
+#    # TODO: Make a mask, even if maskB is False ; not ultimate/final behavior 
+#    # Make a mask, every frame, that is "ndshifted" to same amount as the stellar point
+#    # (If stellar point was ndshifted, the wedge was ndshifted...)
+#    voffstis = SCIdataFR.shape[0]/2 - stisPos[1] + 0 # vertical offset 
+#    hoffstis = SCIdataFR.shape[1]/2 - stisPos[0] + 2 # horizontal offset
+#
+#    if pyklipB and maskB :
+#        # Create mask for each frame that is registered by voffstis and hoffstis
+#        # Make the mask track the stis wedge as it moves around due to pointing error
+#        # This results in the least noisy residuals
+#        if 1 :
+#            maskFR = createmask (maskL, pyklipB, nmfB, SCIC2D.shape, voffstis, hoffstis) 
+#        # xpr
+#        # Create mask for each frame that is registered by voff and hoff 
+#        # Make the mask track the stellar point that will be centered
+#        # Drawback is the wedge will move around relative to the mask
+#        if 0 :
+#            maskFR = createmask (maskL, pyklipB, nmfB, SCIC2D.shape, voff, hoff)
+#    if nmfB and maskB : 
+#        # For NMF, make ONE mask that is as universal to all nmf-bound frames as can be
+#        # (NMF accommodates one mask, passed in on the side.)
+#        # Best bet ? is to stick with stis wedge position, and make mask width more generous
+#
+#        maskFR = createmask (maskL, pyklipB, nmfB, (239,239), voffstis, hoffstis, SCIC2D.shape)
       
     # Apply maskFR if (the mask boolean says to) AND (this is not for NMF)
     if pyklipB and maskB and not nmfB :
@@ -221,7 +325,7 @@ def parallelfunction (
     "In order to reduce the color-mismatch which creates unrealistic
     halos (e.g., Fig. 8), for each target readout, we normalized itself
     and all the PSF readouts by first applying an algorithmic mask
-    to block the physical wedges and the primary di raction spikes,
+    to block the physical wedges and the primary di raction spikes,
     then subtracting the mean and dividing the standard deviation of
     each readout" [sic]
     """
@@ -290,7 +394,14 @@ def parallelfunction (
     if 0 :
         center = usePos # TODO: Check if this is moot after ndshift
     center = (int(hypotenuse/2),int(hypotenuse/2))    
- 
+
+    # At the end of this recipe, you need to have:
+    # SCIcanvas
+    # ERRcanvas
+    # wcspa
+    # center
+    # rtfn
+    # Put these into a returntuple    
     returnT = (
         SCIcanvas ,
         ERRcanvas ,
@@ -299,6 +410,83 @@ def parallelfunction (
         rtfn      ,
     )
     return returnT
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\    
+    
+    
     
 def checkfornans (dataRA):
     for FR in range ( len ( dataRA ) ) : 
@@ -308,16 +496,7 @@ def checkfornans (dataRA):
                     print("There is a np.nan at row ", row, "column", col)
                     assert False
     
-def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Data Cube (TODO: WCS)
-
-    import warnings    
-    warnings.simplefilter('ignore', UserWarning)
-    # ^^^ "UserWarning: Warning: 'partition' will ignore the 'mask' of the MaskedArray."
-    
-    warnings.simplefilter('ignore', RuntimeWarning)
-    # ^^^ "RuntimeWarning: All-NaN slice encountered"
-    # ^^^ "RuntimeWarning: Degrees of freedom <= 0 for slice."
-        
+def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB ) : # Data Cube (TODO: WCS)
     print("DC.shape       : ", DC.shape)
     print("len(filenames) : ", len(filenames)) # Remember that filenames is holding ref filenames...
     print("len(PAs)       : ", len(PAs))
@@ -339,7 +518,7 @@ def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Da
                                                                 #        susaFRRA = np.array ( susaFR )
         rotationcenter = ( susaFR.shape[1] / 2, susaFR.shape[0] / 2 )
         nusaFR = pyklipRotate ( susaFR, PA, rotationcenter ) # North-Up Sigma-Clipped Frame
-
+            #GOTITprint("nusaFR.shape   : ", nusaFR.shape)
         TLbo.append (
             (
                 DCii,
@@ -354,13 +533,12 @@ def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Da
         DCii   = DCii + 1
         IHDUii = IHDUii + 3
         lastFN = FN
-  
+
+     #GOTITprint("TLbo : {", TLbo, "}")    
     nuFRRAbo = np.array ( [ col[1] for col in TLbo ] ) # FRRA is equivalent to a DC
     print("nuFRRAbo.shape : ", nuFRRAbo.shape)
     #print("nuFRRAbo       : {\n", nuFRRAbo, "}")
     HDU      = fits.PrimaryHDU ( nuFRRAbo )
-    if header is not None:
-        HDU.header = header
     HDUL     = fits.HDUList ( [ HDU ] )
     if pyklipB and not nmfB :
         oFN  = "pyk_nuAllResidFRbo.fits" # North-Up All Residual Frames By Order
@@ -395,6 +573,10 @@ def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Da
         oFN  = "nmf_nuNanStddevFRbs.fits"
     HDUL.writeto ( oFN, overwrite = True )        
      
+#    assert False
+          
+    
+    
 def viewpreparedframes ( datacube, zoom, sidelength, reticleB = True, datacubeFNs = None ) :
     """
     Displays the frames that have been inputted and processed,
@@ -720,6 +902,7 @@ def main_function(
         maskL   ,
         maskB   ,
         radcB   ,
+        gaucB   ,
         SFR     ,
         NFR     ,
         excepL  ,
@@ -754,6 +937,7 @@ def main_function(
         maskL  : mask List
         maskB  : mask Boolean
         radcB  : radonCenter Boolean
+        gaucB  : gaussian center Boolean
         SFR    : Start Frame index. SFR = 1 if you're starting at ImageHDU Index 1. 
         NFR    : Number of Frames. 
         
@@ -788,7 +972,12 @@ def main_function(
     FRFNL   = []   # Frame Filename List
     maskFR  = None # mask Frame
     print()
-     
+    
+####################################################################################################
+#####################################################################################################
+#####################################################################################################
+#####################################################################################################
+    # TODO: Make a mask, even if maskB is False ; not ultimate/final behavior 
     # Make a mask, every frame, that is "ndshifted" to same amount as the stellar point
     # (If stellar point was ndshifted, the wedge was ndshifted...)
     WNAXIS1 = (fits.open(allFNL[0][0]))[1].header['NAXIS1'] # subarray width
@@ -802,11 +991,11 @@ def main_function(
     
     voffstis = SCIshape[0]/2 - stisPos[1] + 0 # vertical offset 
     hoffstis = SCIshape[1]/2 - stisPos[0] + 2 # horizontal offset
-    print("SCIshape    : ", SCIshape)
-    print("SCIC2Dshape : ", SCIC2Dshape)
-    print("stisPos     : ", stisPos)
-    print("voffstis    : ", voffstis)
-    print("hoffstis    : ", hoffstis)
+    print("SCIshape : ", SCIshape)
+    print("SCIC2Dshape : ", SCIC2Dshape)   
+    print("stisPos : ", stisPos)    
+    print("voffstis : ", voffstis)
+    print("hoffstis : ", hoffstis)    
 
     if pyklipB and maskB :
         # Create mask for each frame that is registered by voffstis and hoffstis
@@ -819,18 +1008,27 @@ def main_function(
         # Best bet ? is to stick with stis wedge position, and make mask width more generous
         maskFR = createmask (maskL, pyklipB, nmfB, (239,239), voffstis, hoffstis, SCIC2Dshape)    
 
+#####################################################################################################
+#####################################################################################################
+#####################################################################################################
+#####################################################################################################    
+
+
+
     for kk in range ( len ( allFNL ) ) :
         print()
-        #print("kk               : ", kk)
+        print("kk               : ", kk)
         # TODO: I can change all kk to tr if necessary
         torI = kk # target or reference Index (or, Integer, capitalized)
         FNL = allFNL[kk] # Filename List
-        #print("FNL              : ", FNL)
+        print("FNL              : ", FNL)
         
         # TODO: DIAG AND DEVEL ONLY
         if 0:
             if kk  == 1 : continue
-
+            
+        
+        
         for jj in range ( len ( allFNL[kk] ) ):
             parallelTL = [] # parallel Tuple List, a List of Tuples that are going to parallel
             print()
@@ -923,9 +1121,9 @@ def main_function(
             if stopbeforeindex > len ( HDUL ) : stopbeforeindex = len ( HDUL ) 
             # Get SCI frames between index startatindex and stopbeforeindex 
             for ii in range ( startatindex, stopbeforeindex, 3 ) :
-                if 0 :
-                    print()
-                    print()
+                if 1 :
+                    #print()
+                    #print()
                     print("kk, jj, ii, nth  : ", kk, jj, ii, int((ii+2)/3), "** This starts a new frame **")
                     print(ii,"", end="" )
                 EXPTIME = HDUL [ ii ].header[ 'EXPTIME'     ]
@@ -959,12 +1157,314 @@ def main_function(
                     CCDGAIN
                 )
                 parallelTL.append(parallelT)
+                
+# //////////////////////////////////////////////////////////////////////////////                
+# //////////////////////////////////////////////////////////////////////////////                
+# //////////////////////////////////////////////////////////////////////////////                
+# //////////////////////////////////////////////////////////////////////////////                
+# //////////////////////////////////////////////////////////////////////////////                
 
-                SCIcanvas = None
-                ERRcanvas = None
-                center    = None
+                if 0 : # 1 for serial, 0 for parallel
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 2 / 14
+                    "We applied a 3 x 3 pixel median filter
+                        for pixels having DQ flag values of 16, 256, 8192"
+                    """
+                    # Apply 3x3 median filter, per Bin Ren
+                    # This overwrites both the SCI and ERR pixel for bad DQ 
+                    if 1 : 
+                        for (rjy,cix), DQpixel in np.ndenumerate(DQ.data):
+                            if(DQpixel == (16 or 256 or 8192)):
+                                SCI.data[rjy][cix], ERR.data[rjy][cix] = a3b3mf (
+                                    SCI.data ,
+                                    ERR.data ,
+                                    DQ.data  ,
+                                    rjy      ,
+                                    cix
+                                )
+                                
 
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 3 / 14
+                    "we applied an empirical r^(1/2) correction map"
+                    """
+                    # Apply empirical correction map, per Bin Ren
+                    # This applies only to SCI, which is used for centering
+                    if 1 :
+                        plce = 0.5 # power law correction exponent
+                        for (rjy,cix), DQpixel in np.ndenumerate(SCI.data):
+                            vdist  = rjy - rCRPIX2I
+                            hdist  = cix - cCRPIX1I
+                            radius = math.sqrt ( pow ( vdist, 2 ) + pow ( hdist, 2 ) )
+                            SCI.data[rjy][cix] = SCI.data[rjy][cix] * pow ( radius, plce )
+
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 3 / 14
+                    "We aligned the centers of the stars using Radon Transform-based
+                    center determination method described in Ref. 54 after the above-mentioned
+                    median filtering. We took the SCI extension data, start center searching from
+                    the instrumental center given by its CRPIX1 and CRPIX2 header values; to make
+                    use of the 45 degree and 135 degree major diffraction spikes (Fig. 3) for the
+                    alignment of the STIS images"
+                    """
+                    # Get radonCenter's determination of the stellar point
+                    radcPos = (0.0,0.0)
+                    if radcB : # radonCenter Boolean
+                        radcPos = radonCenter.searchCenter ( 
+                            SCI.data         ,
+                            cCRPIX1I             , # x ; column stellar point Integer
+                            rCRPIX2I             , # y ; row    stellar point Integer
+                            size_window = math.floor ( NAXIS2 / 2 ),
+                            size_cost   = 7  ,
+                            theta       = [45, 135]#, 225, 315]
+                        )                    
+                        #print("radcPos        : (", rtfn, ii, ")", f2f2(radcPos))
+                        usePos = radcPos
+
+                    # TODO: Remove blown out / saturated frames PRIOR to Normalize
+                    # It is still possible for there to be frames with median EXPTIME
+                    # that unexpectedly have non-trivial saturated regions. 
+                    # Identifying them will require a crawler function for saturated pixels
+
+
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 4 / 14
+                    "The aligned stellar images are then divided by their exposure times 
+                    (obtained from the EXPTIME header) to have units of counts s^-1,"
+                    """
+                    # Normalize frame
+                    SCI.data = SCI.data / EXPTIME
+                    ERR.data = ERR.data / EXPTIME
+                    
+                    # Get the amount of shift required to center the subarray onto the star 
+                    voff = SCI.shape[0]/2 - usePos[1] # vertical offset 
+                    hoff = SCI.shape[1]/2 - usePos[0] # horizontal offset
+                    
+                    shiftedSCI = scipy.ndimage.shift ( SCI.data, np.array ( [ voff, hoff ] ) )
+                    shiftedERR = scipy.ndimage.shift ( ERR.data, np.array ( [ voff, hoff ] ) )
+                    if 0:
+                        import matplotlib.pyplot as plt
+                        plt.figure      ( figsize=[5,5] )
+                        plt.imshow      ( shiftedSCI.data )
+                        plt.xlim        ( [ 0, shiftedSCI.shape[1]] )
+                        plt.ylim        ( [ 0, shiftedSCI.shape[0]] )                
+                    
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 4 / 14                
+                    "cut into sizes of ... 213 x 213 pixel for the A1.0 exposures"
+                    """
+                    lh = 110 # legacy height from Ewan Douglas 110-high observations
+                    lw = 213 # legacy width from Bin Ren NMF reductions with rotation, and Pyklip
+                    
+                    hypotenuse = math.floor ( math.sqrt ( pow ( lh, 2 ) + pow ( lw, 2 ) ) ) 
+                    
+                    SCIC2D = Cutout2D (
+                        shiftedSCI ,
+                        position = ( shiftedSCI.shape[1]/2 , shiftedSCI.shape[0]/2 ),
+                        size     = (lh,lw) ,
+                        wcs      = None # TODO add wcs to this
+                    )
+                    if 0:
+                        import matplotlib.pyplot as plt
+                        plt.figure      ( figsize=[5,5] )
+                        plt.imshow      ( SCIC2D.data )
+                        plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                        plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                        
+                    ERRC2D = Cutout2D (
+                        shiftedERR ,
+                        position = ( shiftedERR.shape[1]/2 , shiftedERR.shape[0]/2 ),
+                        size     = (lh,lw) ,
+                        wcs      = None # TODO add wcs to this
+                    )
+                    #print("ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
+
+    #        #####################################################################################################
+    #        #####################################################################################################
+    #        #####################################################################################################
+    #        #####################################################################################################
+    #                print("SCIC2D.shape     : (", rtfn, ii, ")", SCIC2D.shape)
+    #                print("SCI.shape : ", SCI.shape)
+    #                # TODO: Make a mask, even if maskB is False ; not ultimate/final behavior 
+    #                # Make a mask, every frame, that is "ndshifted" to same amount as the stellar point
+    #                # (If stellar point was ndshifted, the wedge was ndshifted...)
+    #                voffstis = SCI.shape[0]/2 - stisPos[1] + 0 # vertical offset 
+    #                hoffstis = SCI.shape[1]/2 - stisPos[0] + 2 # horizontal offset
+    #                print("voffstis : ", voffstis)
+    #                print("hoffstis : ", hoffstis)
+    #
+    #                if pyklipB and maskB :
+    #                    # Create mask for each frame that is registered by voffstis and hoffstis
+    #                    # Make the mask track the stis wedge as it moves around due to pointing error
+    #                    # This results in the least noisy residuals
+    #                    maskFR = createmask (maskL, pyklipB, nmfB, SCIC2D.shape, voffstis, hoffstis) 
+    #                if nmfB and maskB : 
+    #                    # For NMF, make ONE mask that is as universal to all nmf-bound frames as can be
+    #                    # (NMF accommodates one mask, passed in on the side.)
+    #                    # Best bet ? is to stick with stis wedge position, and make mask width more generous
+    #                    maskFR = createmask (maskL, pyklipB, nmfB, (239,239), voffstis, hoffstis, SCIC2D.shape)
+    #        #####################################################################################################
+    #        #####################################################################################################
+    #        #####################################################################################################
+    #        #####################################################################################################
+                      
+                    # Apply maskFR if (the mask boolean says to) AND (this is not for NMF)
+                    if pyklipB and maskB and not nmfB :
+                        SCIC2D.data [ maskFR == 0 ] = np.nan
+                        ERRC2D.data [ maskFR == 0 ] = np.nan
+                        if 0 :
+                            import matplotlib.pyplot as plt
+                            plt.rcParams.update({'figure.max_open_warning': 0})
+                            plt.figure      ( figsize=[20,20] )
+                            plt.imshow      ( SCIC2D.data )
+                            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                            plt.title       ( rtfn + ", " + str ( ii ) + ", " + str ( (ii+2)/3 ) )
+
+                    # Convert saturated pixels to np.nan, based on gain
+                    # NMF cannot digest nans
+                    if 0 : 
+                        if CCDGAIN == 4 :
+                            #pixel threshold for nan = 130000 / 4 = 32500
+                            if pyklipB :
+                                SCIC2D.data [ SCIC2D.data > 32500 ] = np.nan
+                            if nmfB :
+                                SCIC2D.data [ SCIC2D.data > 32500 ] = 32500 # not ideal
+                        if CCDGAIN == 1 :
+                            #pixel threshold for nan =              33000
+                            if pyklipB : 
+                                SCIC2D.data [ SCIC2D.data > 33000 ] = np.nan
+                            if nmfB : 
+                                SCIC2D.data [ SCIC2D.data > 33000 ] = 33000 # not ideal
+
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 5 / 14                
+                    "In order to reduce the color-mismatch which creates unrealistic
+                    halos (e.g., Fig. 8), for each target readout, we normalized itself
+                    and all the PSF readouts by first applying an algorithmic mask
+                    to block the physical wedges and the primary di raction spikes,
+                    then subtracting the mean and dividing the standard deviation of
+                    each readout" [sic]
+                    """
+                    # NOTE THAT: NMF fails if the data is given this operation                
+                    if pyklipB and not nmfB :
+                        if 0 :
+                            import matplotlib.pyplot as plt
+                            plt.figure      ( figsize=[5,5] )
+                            plt.imshow      ( SCIC2D.data )
+                            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                            plt.title       ( " before sub of mean")                
+                        meanSCIC2Ddata = np.nanmean(SCIC2D.data)
+                        #print("meanSCIC2Ddata : ", meanSCIC2Ddata)
+                        meanERRC2Ddata = np.nanmean(ERRC2D.data)
+                        SCIC2D.data = SCIC2D.data - meanSCIC2Ddata
+                        if 0 :
+                            import matplotlib.pyplot as plt
+                            plt.figure      ( figsize=[5,5] )
+                            plt.imshow      ( SCIC2D.data )
+                            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                            plt.title       ( " after sub of mean")
+                        ERRC2D.data = ERRC2D.data - meanERRC2Ddata
+                        stddevSCIC2D = np.nanstd(SCIC2D.data)
+                        #print("stddevSCIC2D : ", stddevSCIC2D)
+                        stddevERRC2D = np.nanstd(ERRC2D.data)
+                        SCIC2D.data = SCIC2D.data / stddevSCIC2D
+                        if 0 :
+                            import matplotlib.pyplot as plt
+                            plt.figure      ( figsize=[5,5] )
+                            plt.imshow      ( SCIC2D.data )
+                            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                            plt.title       ( " after div by std")                                    
+                        ERRC2D.data = ERRC2D.data / stddevERRC2D    
+
+                    # TODO: Bin Ren's sequence takes care of DQ, but, 
+                    #    keep an expansion slot for NOT using every process in Bin Ren's recipe
+                    
+                    # Create a canvas large enough to allow Cutout2D frame rotation
+                    # And transfer the Cutout2D frame to it
+                    # Due to the artifact resulting from ndshift, omit transferring a border of size bb
+                    # The size of the Cutout2D that will be transferred, sans edge, is 'aperture'
+                    aFR = int ( hypotenuse / 2 - SCIC2D.shape[0] / 2 ) # aperture fiducial row (*not frame 'FR')
+                    aFC = int ( hypotenuse / 2 - SCIC2D.shape[1] / 2 ) # aperture fiducial column
+                    bb  = 1
+                    aBR = aFR + bb                   # aperture bottom row 
+                    aTR = aFR - bb + SCIC2D.shape[0] # aperture top    row
+                    aLC = aFC + bb                   # aperture left   column 
+                    aRC = aFC - bb + SCIC2D.shape[1] # aperture right  column  
+
+                    SCIcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
+                    if pyklipB and not nmfB : SCIcanvas[:] = np.nan   # Pyklip requires nans  background
+                    SCIcanvas [ aBR : aTR , aLC : aRC ] = SCIC2D.data [ bb : - bb , bb : - bb ]
+                    ERRcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
+                    if pyklipB and not nmfB : ERRcanvas[:] = np.nan   # Pyklip requires nans  background
+                    ERRcanvas [ aBR : aTR , aLC : aRC ] = ERRC2D.data [ bb : - bb , bb : - bb ]
+                    if 0 :
+                        import matplotlib.pyplot as plt     
+                        plt.figure      ( figsize=[3,3] )
+                        plt.imshow      ( SCIcanvas.data )
+                        plt.xlim        ( [ 0, SCIcanvas.shape[1]] )
+                        plt.ylim        ( [ 0, SCIcanvas.shape[0]] )                
+                                    
+                    if 0 :
+                        center = usePos # TODO: Check if this is moot after ndshift
+                    center = (int(hypotenuse/2),int(hypotenuse/2))
+################Anything above this line should be serial                    
+                
+                # At the end of this recipe, you need to have:
+                # SCIcanvas
+                # ERRcanvas
+                # wcspa
+                # center
+                # rtfn
+                # Put these into a returntuple
+                if 1 : # 0 for serial, 1 for parallel
+                    SCIcanvas = None
+                    ERRcanvas = None
+                    #wcspa = None # This is generated once
+                    center = None
+                    #rtfn = None
+                
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+                if 0 : # 1 for serial, 0 for parallel
+                    torL   .append(torI) # torI = kk. 'kk' maintains top level dimension.
+                    if kk == 0 :
+                        trgSCIL.append(SCIcanvas)
+                        trgERRL.append(ERRcanvas)
+                    if kk == 1 :
+                        refSCIL.append(SCIcanvas)
+                        refERRL.append(ERRcanvas)
+                    pasL   .append(wcspa)
+                    cenL   .append(center)
+                    FRFNL  .append(rtfn)
+            
+                # RIGHT HERE< THE FILE HAS EXHAUSTED ITS FRAMES.
+                # I CAN TRY TO RUN PARALLEL HERE, PRIOR TO CLOSE OF THIS FILE'S HDUL....
             HDUL.close()
+            # I CAN ALSO TRY TO RUN PARALLEL HERE, AFTER THE CLOSE OF THIS FILE'S HDUL....
+        
+            
+            # ATTEMPTING TO RUN PARALLEL UNDER THE FILE LOOP, AT THE END OF THE PARTICULAR FILE
+            # ALL THE APPENDS SHOULD STILL WORK THE SAME WAY
+            # THEY ARE SIMPLY NOT APPENDING ALL AT ONCE FROM A MONOLITHIC PARALLEL BLOCK        
             parallelProcessPool = Pool ( cpuCount - 1)
             parallelIterableTimerIndices = range ( len ( parallelTL ) )
             tasks = [
@@ -981,28 +1481,28 @@ def main_function(
             parallelProcessPool.close()
             parallelProcessPool.join()
             parallelProcessResult = [ task.get() for task in tasks ]
-            #print("len(parallelProcessResult) : ", len(parallelProcessResult))
-
-            for ii in range ( len ( parallelProcessResult ) ) :
-                returnT = parallelProcessResult[ii]
-                #print("len(parallelProcessResult[ii]) : ", len(parallelProcessResult[ii]))
-                #print("len(returnT) : ", len(returnT))
-                #print("returnT[2] wcspa : ", returnT[2])
-                SCIcanvas = returnT [ 0 ] 
-                ERRcanvas = returnT [ 1 ] 
-                wcspa     = returnT [ 2 ] # TODO: optimize later
-                center    = returnT [ 3 ] # TODO: optimize later
-                rtfn      = returnT [ 4 ] # TODO: optimize later
-                torL   .append(torI) # torI = kk. 'kk' maintains top level dimension.
-                if kk == 0 :
-                    trgSCIL.append(SCIcanvas)
-                    trgERRL.append(ERRcanvas)
-                if kk == 1 :
-                    refSCIL.append(SCIcanvas)
-                    refERRL.append(ERRcanvas)
-                pasL   .append(wcspa)
-                cenL   .append(center)
-                FRFNL  .append(rtfn)                
+            print("len(parallelProcessResult) : ", len(parallelProcessResult))
+            if 1 : # 0 for serial, 1 for parallel
+                for ii in range ( len ( parallelProcessResult ) ) :
+                    returnT = parallelProcessResult[ii]
+                    print("len(parallelProcessResult[ii]) : ", len(parallelProcessResult[ii]))
+                    print("len(returnT) : ", len(returnT))
+                    print("returnT[2] wcspa : ", returnT[2])
+                    SCIcanvas = returnT [ 0 ] 
+                    ERRcanvas = returnT [ 1 ] 
+                    wcspa     = returnT [ 2 ] # TODO: optimize later
+                    center    = returnT [ 3 ] # TODO: optimize later
+                    rtfn      = returnT [ 4 ] # TODO: optimize later
+                    torL   .append(torI) # torI = kk. 'kk' maintains top level dimension.
+                    if kk == 0 :
+                        trgSCIL.append(SCIcanvas)
+                        trgERRL.append(ERRcanvas)
+                    if kk == 1 :
+                        refSCIL.append(SCIcanvas)
+                        refERRL.append(ERRcanvas)
+                    pasL   .append(wcspa)
+                    cenL   .append(center)
+                    FRFNL  .append(rtfn)                
             
 
             
@@ -1036,7 +1536,7 @@ def main_function(
 
 
 
-class stishubbleData(Data):
+class cleansheetData(Data):
     """
     Basic class to interface with a basic direct imaging dataset
 
@@ -1067,6 +1567,7 @@ class stishubbleData(Data):
         maskL            ,
         maskB            ,
         radcB            ,
+        gaucB            ,
         SFR              ,
         NFR              ,
         excepL           ,
@@ -1081,13 +1582,14 @@ class stishubbleData(Data):
         flipx     = False
     ):
     
-        super(stishubbleData, self).__init__()
+        super(cleansheetData, self).__init__()
         
         print("trgFNL           : ", trgFNL)
         print("refFNL           : ", refFNL)
         print("maskL            : ", maskL)
         print("maskB            : ", maskB)
         print("radcB            : ", radcB)
+        print("gaucB            : ", gaucB)
         print("SFR              : ", SFR)
         print("NFR              : ", NFR)
         
@@ -1097,6 +1599,7 @@ class stishubbleData(Data):
                 maskL   ,
                 maskB   ,
                 radcB   ,
+                gaucB   ,
                 SFR     ,
                 NFR     ,
                 excepL  , 
@@ -1133,23 +1636,22 @@ class stishubbleData(Data):
         # the present system is to truncate them when time to isolate targets
         filenames  = FRFNL
         
-        if 0    : 
-            print("torRA            :  [", end="" )
-            for tr in torRA : print(tr, ", ", end="") # SCIcanvas 
-            print("]")                    
-            print("input_SCI       :  [", end="" )
-            for fr in input_SCI : print(fr[120][140], ", ", end="") # SCIcanvas 
-            print("]")    
-            print("input_ERR       :  [", end="" )
-            for fr in input_ERR : print(fr[120][140], ", ", end="") # SCIcanvas 
-            print("]")    
-            print("centers          :  [", end="" )
-            for cen in centers   : print("(", f2f2(cen),  ")", end="")
-            print("]")
-            print("parangs          :  [", end="" )
-            for pa in parangs    : print(f2(pa),        ", ", end="")
-            print("]")
-            print("filenames        : ", filenames)
+        print("torRA            :  [", end="" )
+        for tr in torRA : print(tr, ", ", end="") # SCIcanvas 
+        print("]")                    
+        print("input_SCI       :  [", end="" )
+        for fr in input_SCI : print(fr[120][140], ", ", end="") # SCIcanvas 
+        print("] Note:")    
+        print("input_ERR       :  [", end="" )
+        for fr in input_ERR : print(fr[120][140], ", ", end="") # SCIcanvas 
+        print("] Note:")    
+        print("centers          :  [", end="" )
+        for cen in centers   : print("(", f2f2(cen),  ")", end="")
+        print("]")
+        print("parangs          :  [", end="" )
+        for pa in parangs    : print(f2(pa),        ", ", end="")
+        print("]")
+        print("filenames        : ", filenames)
 
 
 
