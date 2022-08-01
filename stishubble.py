@@ -1,7 +1,8 @@
+
 ##################################################
 # Title:    stishubble.py                        #
-# Author:   Romert M Thompson                    #
-# Date:     Oct 19 2021                          #
+# Author:   Robert M Thompson                    #
+# Date:     Oct 2 2021                           #
 # Function: Hubble STIS Instrument Data Pipeline #
 ##################################################
 
@@ -21,9 +22,7 @@ from scipy.optimize import OptimizeWarning
 import statistics
 from astropy import stats
 from pyklip.klip import rotate as pyklipRotate
-import psutil
-cpuCount   = psutil.cpu_count(logical = False)
-print("cpuCount : ", cpuCount)
+#import psutil
 from multiprocessing import Pool
 #https://www.stsci.edu/hst/instrumentation/stis/observing-strategies/available-modes/stis-bar5
 #"The wedges vary in width from 0.5 to 3.0 arcseconds over their 50 arcseconds length"
@@ -31,12 +30,14 @@ from multiprocessing import Pool
 #SLOPE     = 0.025 # (1/40)
 SLOPE      = (((3.0 - 0.5)/2)/50) # Equals 0.025 Equals 1/40
 PLATESCALE = 0.05
-
+cpuCount   = 7 # psutil.cpu_count(logical = False)
+useParallelB  = False
+useParallelB  = True
 
 
 def parallelfunction (    
         parallelTimerIndex ,
-        parallelT,
+        parallelT,            # parallel Tuple
         maskFR        
     ) :
     #print("parallelTimerIndex : ", parallelTimerIndex)
@@ -46,20 +47,21 @@ def parallelfunction (
     rtfn      = parallelT [  3 ] 
     ii        = parallelT [  4 ]
     wcspa     = parallelT [  5 ]
-    rCRPIX2F  = parallelT [  6 ]
-    cCRPIX1F  = parallelT [  7 ]
+    RCRPIX2F  = parallelT [  6 ]
+    CCRPIX1F  = parallelT [  7 ]
     radcB     = parallelT [  8 ]    
-    NAXIS2    = parallelT [  9 ]
+    HNAXIS2I  = parallelT [  9 ]
     EXPTIME   = parallelT [ 10 ]
-    usePos    = parallelT [ 11 ]
+    radcPos   = parallelT [ 11 ]
     maskB     = parallelT [ 12 ]
     maskL     = parallelT [ 13 ]
     pyklipB   = parallelT [ 14 ]
     nmfB      = parallelT [ 15 ]
     CCDGAIN   = parallelT [ 16 ]
-    cCRPIX1I  = int(cCRPIX1F) # column stis intrument stellar point Integer
-    rCRPIX2I  = int(rCRPIX2F) #    row stis intrument stellar point Integer
-    stisPos   = (cCRPIX1F, rCRPIX2F)
+    CCRPIX1I  = int(CCRPIX1F) # column stis intrument stellar point Integer
+    RCRPIX2I  = int(RCRPIX2F) #    row stis intrument stellar point Integer
+    stisPos   = (CCRPIX1F, RCRPIX2F)
+    
     """
     Bin Ren, Laurent Pueyo
     "Post-processing of the HST STIS coronagraphic observations" (2017)
@@ -80,7 +82,7 @@ def parallelfunction (
                     cix
                 )
                 
-
+    if 0 : print("\nP pixel check 1    : ", SCIdataFR[120][140])
     """
     Bin Ren, Laurent Pueyo
     "Post-processing of the HST STIS coronagraphic observations" (2017)
@@ -92,10 +94,11 @@ def parallelfunction (
     if 1 :
         plce = 0.5 # power law correction exponent
         for (rjy,cix), DQpixel in np.ndenumerate(SCIdataFR):
-            vdist  = rjy - rCRPIX2I
-            hdist  = cix - cCRPIX1I
+            vdist  = rjy - RCRPIX2I
+            hdist  = cix - CCRPIX1I
             radius = math.sqrt ( pow ( vdist, 2 ) + pow ( hdist, 2 ) )
             SCIdataFR[rjy][cix] = SCIdataFR[rjy][cix] * pow ( radius, plce )
+    if 0 : print("P pixel check 2    : ", SCIdataFR[120][140])
 
     """
     Bin Ren, Laurent Pueyo
@@ -113,14 +116,14 @@ def parallelfunction (
     if radcB : # radonCenter Boolean
         radcPos = radonCenter.searchCenter ( 
             SCIdataFR         ,
-            cCRPIX1I             , # x ; column stellar point Integer
-            rCRPIX2I             , # y ; row    stellar point Integer
-            size_window = math.floor ( NAXIS2 / 2 ),
+            CCRPIX1I             , # x ; column stellar point Integer
+            RCRPIX2I             , # y ; row    stellar point Integer
+            size_window = math.floor ( HNAXIS2I / 2 ),
             size_cost   = 7  ,
             theta       = [45, 135]#, 225, 315]
         )                    
-        #print("radcPos        : (", rtfn, ii, ")", f2f2(radcPos))
-        usePos = radcPos
+        if 0 : print("P radcPos          : (", rtfn, ii, ")", f2f2(radcPos))
+        
 
     # TODO: Remove blown out / saturated frames PRIOR to Normalize
     # It is still possible for there to be frames with median EXPTIME
@@ -138,19 +141,27 @@ def parallelfunction (
     # Normalize frame
     SCIdataFR = SCIdataFR / EXPTIME
     ERRdataFR = ERRdataFR / EXPTIME
+    if 0 : print("P pixel check 3    : ", SCIdataFR[120][140]) # Cannot do this for 80-high    
+    if 0 : print("P C")
     
     # Get the amount of shift required to center the subarray onto the star 
-    voff = SCIdataFR.shape[0]/2 - usePos[1] # vertical offset 
-    hoff = SCIdataFR.shape[1]/2 - usePos[0] # horizontal offset
+    voff = SCIdataFR.shape[0]/2 - radcPos[1] # vertical offset 
+    hoff = SCIdataFR.shape[1]/2 - radcPos[0] # horizontal offset
+    if 0 : print("P native voff      : ",voff)
+    if SCIdataFR.shape[0] ==  80 : voff = 40.0 - radcPos[1]    
+    if SCIdataFR.shape[0] == 316 : voff = 69.0 - radcPos[1]
+    if 0 : print("P magic  voff      : ",voff)     
     
     shiftedSCIdataFR = scipy.ndimage.shift ( SCIdataFR, np.array ( [ voff, hoff ] ) )
     shiftedERRdataFR = scipy.ndimage.shift ( ERRdataFR, np.array ( [ voff, hoff ] ) )
-    if 0:
+    if 0 : print("P pixel check 4    : ", shiftedSCIdataFR[120][140])
+    if 1:
         import matplotlib.pyplot as plt
         plt.figure      ( figsize=[5,5] )
-        plt.imshow      ( shiftedSCIdataFRdataFR )
+        plt.imshow      ( shiftedSCIdataFR )
         plt.xlim        ( [ 0, shiftedSCIdataFR.shape[1]] )
-        plt.ylim        ( [ 0, shiftedSCIdataFR.shape[0]] )                
+        plt.ylim        ( [ 0, shiftedSCIdataFR.shape[0]] )
+        plt.title       ("P shiftedSCIdataFR")        
     
     """
     Bin Ren, Laurent Pueyo
@@ -169,13 +180,24 @@ def parallelfunction (
         size     = (lh,lw) ,
         wcs      = None # TODO add wcs to this
     )
+    if 0 : print("P pixel check 5    : ", shiftedSCIdataFR[120][140]) 
+    if SCIdataFR.shape[0] == 316 :
+        SCIC2D = Cutout2D (
+            shiftedSCIdataFR ,
+            position = ( shiftedSCIdataFR.shape[1]/2, 69 ),
+            size     = (lh,lw) ,
+            wcs      = None # TODO add wcs to this
+        )
+    if 0 : print("P pixel check 6    : ", shiftedSCIdataFR[120][140])
+    if 0 : print("P D")
     
-    if 0:
+    if 1:
         import matplotlib.pyplot as plt
         plt.figure      ( figsize=[5,5] )
         plt.imshow      ( SCIC2D.data )
         plt.xlim        ( [ 0, SCIC2D.shape[1]] )
         plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+        plt.title       ("P SCIC2D")
         
     ERRC2D = Cutout2D (
         shiftedERRdataFR ,
@@ -183,8 +205,20 @@ def parallelfunction (
         size     = (lh,lw) ,
         wcs      = None # TODO add wcs to this
     )
-    #print("ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
-      
+    if ERRdataFR.shape[0] == 316 :
+        ERRC2D = Cutout2D (
+            shiftedERRdataFR ,
+            position = ( shiftedSCIdataFR.shape[1]/2, 69 ),
+            size     = (lh,lw) ,
+            wcs      = None # TODO add wcs to this
+        )    
+    if 0 : print("P ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
+    
+
+# PREMASK P                    
+    if 1 :
+        premask = copy.deepcopy ( SCIC2D.data )
+                              
     # Apply maskFR if (the mask boolean says to) AND (this is not for NMF)
     if pyklipB and maskB and not nmfB :
         SCIC2D.data [ maskFR == 0 ] = np.nan
@@ -192,27 +226,29 @@ def parallelfunction (
         if 0 :
             import matplotlib.pyplot as plt
             plt.rcParams.update({'figure.max_open_warning': 0})
-            plt.figure      ( figsize=[20,20] )
+            plt.figure      ( figsize=[5,5] ) # [20,20]
             plt.imshow      ( SCIC2D.data )
             plt.xlim        ( [ 0, SCIC2D.shape[1]] )
             plt.ylim        ( [ 0, SCIC2D.shape[0]] )
-            plt.title       ( rtfn + ", " + str ( ii ) + ", " + str ( (ii+2)/3 ) )
+            plt.title       ( "P" + rtfn + ", " + str ( ii ) + ", " + str ( (ii+2)/3 ) )
 
-    # Convert saturated pixels to np.nan, based on gain
-    # NMF cannot digest nans
-    if 0 : 
+    # If Pyklip, Convert saturated pixels to np.nan, based on gain
+    # NMF cannot digest nans, so cap the value
+    if 1 : 
         if CCDGAIN == 4 :
             #pixel threshold for nan = 130000 / 4 = 32500
             if pyklipB :
                 SCIC2D.data [ SCIC2D.data > 32500 ] = np.nan
-            if nmfB :
-                SCIC2D.data [ SCIC2D.data > 32500 ] = 32500 # not ideal
+#            if nmfB :
+#                ERRC2D.data [ SCIC2D.data > 32500 ] = 100 # not ideal
+#                SCIC2D.data [ SCIC2D.data > 32500 ] = 10000 # not ideal
         if CCDGAIN == 1 :
             #pixel threshold for nan =              33000
             if pyklipB : 
                 SCIC2D.data [ SCIC2D.data > 33000 ] = np.nan
-            if nmfB : 
-                SCIC2D.data [ SCIC2D.data > 33000 ] = 33000 # not ideal
+#            if nmfB : 
+#                ERRC2D.data [ SCIC2D.data > 33000 ] = 100 # not ideal              
+#                SCIC2D.data [ SCIC2D.data > 33000 ] = 10000 # not ideal
 
     """
     Bin Ren, Laurent Pueyo
@@ -221,7 +257,7 @@ def parallelfunction (
     "In order to reduce the color-mismatch which creates unrealistic
     halos (e.g., Fig. 8), for each target readout, we normalized itself
     and all the PSF readouts by first applying an algorithmic mask
-    to block the physical wedges and the primary di raction spikes,
+    to block the physical wedges and the primary diffraction spikes,
     then subtracting the mean and dividing the standard deviation of
     each readout" [sic]
     """
@@ -233,9 +269,9 @@ def parallelfunction (
             plt.imshow      ( SCIC2D.data )
             plt.xlim        ( [ 0, SCIC2D.shape[1]] )
             plt.ylim        ( [ 0, SCIC2D.shape[0]] )
-            plt.title       ( " before sub of mean")                
+            plt.title       ( "P before sub of mean")                
         meanSCIC2Ddata = np.nanmean(SCIC2D.data)
-        #print("meanSCIC2Ddata : ", meanSCIC2Ddata)
+        if 0 : print("P meanSCIC2Ddata : ", meanSCIC2Ddata)
         meanERRC2Ddata = np.nanmean(ERRC2D.data)
         SCIC2D.data = SCIC2D.data - meanSCIC2Ddata
         if 0 :
@@ -244,19 +280,21 @@ def parallelfunction (
             plt.imshow      ( SCIC2D.data )
             plt.xlim        ( [ 0, SCIC2D.shape[1]] )
             plt.ylim        ( [ 0, SCIC2D.shape[0]] )
-            plt.title       ( " after sub of mean")
+            plt.title       ( "P after sub of mean")
         ERRC2D.data = ERRC2D.data - meanERRC2Ddata
         stddevSCIC2D = np.nanstd(SCIC2D.data)
-        #print("stddevSCIC2D : ", stddevSCIC2D)
+        if 0 : print("P stddevSCIC2D : ", stddevSCIC2D)
         stddevERRC2D = np.nanstd(ERRC2D.data)
         SCIC2D.data = SCIC2D.data / stddevSCIC2D
-        if 0 :
+        #if 1 : print("P pixel check -3    : ", SCIC2D.data[120-90][140]) # nan    
+        
+        if 1 :
             import matplotlib.pyplot as plt
             plt.figure      ( figsize=[5,5] )
             plt.imshow      ( SCIC2D.data )
             plt.xlim        ( [ 0, SCIC2D.shape[1]] )
             plt.ylim        ( [ 0, SCIC2D.shape[0]] )
-            plt.title       ( " after div by std")                                    
+            plt.title       ( "P after div by std")                                    
         ERRC2D.data = ERRC2D.data / stddevERRC2D    
 
     # TODO: Bin Ren's sequence takes care of DQ, but, 
@@ -275,8 +313,10 @@ def parallelfunction (
     aRC = aFC - bb + SCIC2D.shape[1] # aperture right  column  
 
     SCIcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
+    if 0 : print("P pixel check -3    : ", SCIcanvas[120][140]) # 0.0
     if pyklipB and not nmfB : SCIcanvas[:] = np.nan   # Pyklip requires nans  background
     SCIcanvas [ aBR : aTR , aLC : aRC ] = SCIC2D.data [ bb : - bb , bb : - bb ]
+    if 0 : print("P pixel check -2    : ", SCIcanvas[120][140])    
     ERRcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
     if pyklipB and not nmfB : ERRcanvas[:] = np.nan   # Pyklip requires nans  background
     ERRcanvas [ aBR : aTR , aLC : aRC ] = ERRC2D.data [ bb : - bb , bb : - bb ]
@@ -288,36 +328,79 @@ def parallelfunction (
         plt.ylim        ( [ 0, SCIcanvas.shape[0]] )                
                     
     if 0 :
-        center = usePos # TODO: Check if this is moot after ndshift
+        center = radcPos # TODO: Check if this is moot after ndshift
     center = (int(hypotenuse/2),int(hypotenuse/2))    
- 
-    returnT = (
-        SCIcanvas ,
-        ERRcanvas ,
-        wcspa     ,
-        center    ,
-        rtfn      ,
-    )
+
+# PREMASK P                   
+    if 1 : 
+        premaskcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
+        if pyklipB and not nmfB : premaskcanvas[:] = np.nan   # Pyklip requires nans  background
+        premaskcanvas [ aBR : aTR , aLC : aRC ] = premask [ bb : - bb , bb : - bb ]
+
+    if 0 :                         
+        returnT = (
+            SCIcanvas ,
+            ERRcanvas ,
+            wcspa     ,
+            center    ,
+            rtfn      ,
+        )
+    if 1 :                         
+        returnT = (
+            SCIcanvas ,
+            ERRcanvas ,
+            wcspa     ,
+            center    ,
+            rtfn      ,
+# PREMASK P
+            premaskcanvas ,
+            ii           
+        )
+        
     return returnT
     
-def checkfornans (dataRA):
+    
+    
+def checkfornansDC (dataRA):
     for FR in range ( len ( dataRA ) ) : 
         for row in range ( len ( dataRA [ FR ] ) ) :
             for col in range ( len ( dataRA [ FR ] [ row ] ) ) :
                 if np.isnan ( dataRA [ FR ] [ row ] [col ] ) == True :
                     print("There is a np.nan at row ", row, "column", col)
                     assert False
-    
-def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Data Cube (TODO: WCS)
+# debug
+def checkforzerorowsDC (dataRA):
+    for FR in range ( len ( dataRA ) ) :
+        for row in range ( len ( dataRA [ FR ] ) ) :
+            is_all_zero = np.all((row==0))
+            if is_all_zero:
+                print("is_all_zero:", is_all_zero, "at row", row)
+#                assert False
+def checkfornansFR (FR):
+    for row in range ( FR.shape[0] ) :
+        for col in range ( FR.shape[1] ) :
+            if np.isnan ( FR [ row ] [col ] ) == True :
+                print("There is a np.nan at row ", row, "column", col)
+                assert False
+# debug
+def checkforzerorowsFR (FR):
+    for row in range ( FR.shape[0] ) :
+        didgt0occuryet = False
+        for col in range ( FR.shape[1] ) :
+            if FR [ row ] [col ] > 0 :
+                didgt0occuryet = True
+                continue
+        if didgt0occuryet == False:
+            print("row = ", row)
+            for col in range ( FR.shape[1] ) :
+                print(FR [ row ] [col ])                
 
-    import warnings    
-    warnings.simplefilter('ignore', UserWarning)
-    # ^^^ "UserWarning: Warning: 'partition' will ignore the 'mask' of the MaskedArray."
+#        is_all_zero = np.all((row==0))
+#        if is_all_zero:
+#            print("is_all_zero:", is_all_zero, "at row", row)
+#            assert False
     
-    warnings.simplefilter('ignore', RuntimeWarning)
-    # ^^^ "RuntimeWarning: All-NaN slice encountered"
-    # ^^^ "RuntimeWarning: Degrees of freedom <= 0 for slice."
-        
+def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB ) : # Data Cube (TODO: WCS)
     print("DC.shape       : ", DC.shape)
     print("len(filenames) : ", len(filenames)) # Remember that filenames is holding ref filenames...
     print("len(PAs)       : ", len(PAs))
@@ -339,7 +422,7 @@ def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Da
                                                                 #        susaFRRA = np.array ( susaFR )
         rotationcenter = ( susaFR.shape[1] / 2, susaFR.shape[0] / 2 )
         nusaFR = pyklipRotate ( susaFR, PA, rotationcenter ) # North-Up Sigma-Clipped Frame
-
+            #GOTITprint("nusaFR.shape   : ", nusaFR.shape)
         TLbo.append (
             (
                 DCii,
@@ -354,13 +437,12 @@ def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Da
         DCii   = DCii + 1
         IHDUii = IHDUii + 3
         lastFN = FN
-  
+
+     #GOTITprint("TLbo : {", TLbo, "}")    
     nuFRRAbo = np.array ( [ col[1] for col in TLbo ] ) # FRRA is equivalent to a DC
     print("nuFRRAbo.shape : ", nuFRRAbo.shape)
     #print("nuFRRAbo       : {\n", nuFRRAbo, "}")
     HDU      = fits.PrimaryHDU ( nuFRRAbo )
-    if header is not None:
-        HDU.header = header
     HDUL     = fits.HDUList ( [ HDU ] )
     if pyklipB and not nmfB :
         oFN  = "pyk_nuAllResidFRbo.fits" # North-Up All Residual Frames By Order
@@ -395,7 +477,9 @@ def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB,header=None ) : # Da
         oFN  = "nmf_nuNanStddevFRbs.fits"
     HDUL.writeto ( oFN, overwrite = True )        
      
-def viewpreparedframes ( datacube, zoom, sidelength, reticleB = True, datacubeFNs = None ) :
+          
+    
+def viewpreparedframes ( datacube, zoom, sidelength, datacubeFNs, reticleB = True ) :
     """
     Displays the frames that have been inputted and processed,
     prior to them being given over to Pyklip or NMF_imaging
@@ -409,12 +493,17 @@ def viewpreparedframes ( datacube, zoom, sidelength, reticleB = True, datacubeFN
     Paints diagonal cross hairs
     Paints tick marks       
     """
+    
+    
+
     ii = 0 # index for all frames in class final dataset member
     #if zoom > self._input[0].shape[1] or zoom > self._input[0].shape[0] :
     if zoom > datacube[0].shape[1] or zoom > datacube[0].shape[0] :
         zoom = 0
     #for input_SCI in self._input :
-    for input_SCI in datacube :
+    datacube_copy = copy.deepcopy(datacube)
+    
+    for input_SCI in datacube_copy :
         H = input_SCI.shape[0]
         W = input_SCI.shape[1]
         if H % 2 == 0 : H = H - 1
@@ -484,10 +573,11 @@ def viewpreparedframes ( datacube, zoom, sidelength, reticleB = True, datacubeFN
             plt.xlim        ( [ zoom, W - zoom ] ) 
             plt.ylim        ( [ zoom, H - zoom ] )            
             #plt.title       ( "self._input " + self._filenames[ii] + ", " + str(ii) )
-            if datacubeFNs :
-                plt.title       ( "CD,presently " + datacubeFNs[ii] + ", " + str(ii) )
-            else :
-                plt.title       ( "CD,presently, " + str(ii) )
+#            if datacubeFNs :
+#            plt.title       ( "CD,presently " + datacubeFNs[ii] + ", " + str(ii) )
+            plt.title       ( datacubeFNs[ii][0] + " ImageHDU index: " + str(datacubeFNs[ii][1]) + ". (Datacube index: " + str(ii) + ".)")
+#            else :
+#                plt.title       ( "CD,presently, " + str(ii) )
         
         ii = ii + 1
         
@@ -522,7 +612,7 @@ def createmask (maskL, pyklipB, nmfB, maskshape, voff, hoff, apertureshape = Non
         maskFR [ mvc - avc + 1 + 1 : mvc + avc - 1 , mhc - ahc + 1: mhc + ahc - 1 ] = 1
         if 0 :
             import matplotlib.pyplot as plt     
-            plt.figure      ( figsize=[30,30] )
+            plt.figure      ( figsize=[5,5] ) # [30,30]
             plt.imshow      ( maskFR )
             plt.xlim        ( [ 0, maskFR.shape[1] - 0] )
             plt.ylim        ( [ 0, maskFR.shape[0] - 0] )
@@ -594,7 +684,7 @@ def createmask (maskL, pyklipB, nmfB, maskshape, voff, hoff, apertureshape = Non
     
     if 0 :
         import matplotlib.pyplot as plt     
-        plt.figure      ( figsize=[30,30] )
+        plt.figure      ( figsize=[5,5] ) #[30,30]
         plt.imshow      ( maskFR )
         plt.xlim        ( [ 0, maskFR.shape[1] - 0] )
         plt.ylim        ( [ 0, maskFR.shape[0] - 0] )
@@ -786,42 +876,25 @@ def main_function(
     pasL    = []   # position angle List
     cenL    = []   # centers List
     FRFNL   = []   # Frame Filename List
+# PREMASK    
+    premask_L  = []   # pre-mask target star SCI frame List
+    premaskFNL = []   # pre-mask File Name List, which contains FITS filename and frame index 
     maskFR  = None # mask Frame
-    print()
-     
-    # Make a mask, every frame, that is "ndshifted" to same amount as the stellar point
-    # (If stellar point was ndshifted, the wedge was ndshifted...)
-    WNAXIS1 = (fits.open(allFNL[0][0]))[1].header['NAXIS1'] # subarray width
-    HNAXIS2 = (fits.open(allFNL[0][0]))[1].header['NAXIS2'] # subarray height
-    CCRPIX1 = (fits.open(allFNL[0][0]))[1].header['CRPIX1'] # stellar point column
-    RCRPIX2 = (fits.open(allFNL[0][0]))[1].header['CRPIX2'] # stellar point row
-        
-    SCIshape = ( HNAXIS2, WNAXIS1 ) 
-    stisPos  = ( CCRPIX1, RCRPIX2 )   
-    SCIC2Dshape = ( 110 , 213 ) 
     
-    voffstis = SCIshape[0]/2 - stisPos[1] + 0 # vertical offset 
-    hoffstis = SCIshape[1]/2 - stisPos[0] + 2 # horizontal offset
-    print("SCIshape    : ", SCIshape)
-    print("SCIC2Dshape : ", SCIC2Dshape)
-    print("stisPos     : ", stisPos)
-    print("voffstis    : ", voffstis)
-    print("hoffstis    : ", hoffstis)
+    print("cpuCount           : ",cpuCount)
+    print("useParallelB       : ",useParallelB)
+    
+    
 
-    if pyklipB and maskB :
-        # Create mask for each frame that is registered by voffstis and hoffstis
-        # Make the mask track the stis wedge as it moves around due to pointing error
-        # This results in the least noisy residuals
-        maskFR = createmask (maskL, pyklipB, nmfB, SCIC2Dshape, voffstis, hoffstis) 
-    if nmfB and maskB : 
-        # For NMF, make ONE mask that is as universal to all nmf-bound frames as can be
-        # (NMF accommodates one mask, passed in on the side.)
-        # Best bet ? is to stick with stis wedge position, and make mask width more generous
-        maskFR = createmask (maskL, pyklipB, nmfB, (239,239), voffstis, hoffstis, SCIC2Dshape)    
 
+
+    # AllFNL is a list of lists. 
+    # The first list contains target FITS files, the second contains reference FITS files.
+    # Loop through the list of lists
+    # Index [0] accesses the list of all target FITS files
+    # Index [1] accesses the list of all reference FITS files
     for kk in range ( len ( allFNL ) ) :
-        print()
-        #print("kk               : ", kk)
+        print("\nkk                 : ", kk)
         # TODO: I can change all kk to tr if necessary
         torI = kk # target or reference Index (or, Integer, capitalized)
         FNL = allFNL[kk] # Filename List
@@ -829,11 +902,85 @@ def main_function(
         
         # TODO: DIAG AND DEVEL ONLY
         if 0:
-            if kk  == 1 : continue
+            if kk  == 1 : 
+                print("We are ignoring reference files / reference frames, in diagnostic mode")
+                continue
+            
 
+       
+        
+        
+        # We are now at one of the lists contained in the list of lists
+        # This will be either the list of target FITS files, or the list of reference FITS files
+        # Loop through all of the FITS files in this list  
         for jj in range ( len ( allFNL[kk] ) ):
+            print("\njj                 : ", jj)
+        
+            # (If stellar point was ndshifted, the wedge was ndshifted...)
+            # These values do not change after the first frame, so, 
+            # they can be discovered before the first frame and remain good for all frames
+            WNAXIS1I = (fits.open(allFNL[kk][jj]))[1].header['NAXIS1'] # subarray width
+            HNAXIS2I = (fits.open(allFNL[kk][jj]))[1].header['NAXIS2'] # subarray height
+            CCRPIX1F = (fits.open(allFNL[kk][jj]))[1].header['CRPIX1'] # stellar point column
+            RCRPIX2F = (fits.open(allFNL[kk][jj]))[1].header['CRPIX2'] # stellar point row
+            CCRPIX1I = int(CCRPIX1F) # column stis intrument stellar point Integer
+            RCRPIX2I = int(RCRPIX2F) #    row stis intrument stellar point Integer
+            
+            print("WNAXIS1I            : ", WNAXIS1I)
+            print("HNAXIS2I            : ", HNAXIS2I)   
+            print("CCRPIX1F            : ", CCRPIX1F)    
+            print("RCRPIX2F            : ", RCRPIX2F)
+            print("CCRPIX1I            : ", CCRPIX1I)    
+            print("RCRPIX2I            : ", RCRPIX2I)
+            
+            if maskB :
+                # Start of getting values for mask creation 
+                # Make a mask that is "ndshifted" to same amount as the stellar point
+                #    
+                SCIshape = ( HNAXIS2I, WNAXIS1I ) 
+                
+                stisPos  = ( CCRPIX1F, RCRPIX2F )
+                if 0 : print("native stisPos     : ",stisPos)
+                if HNAXIS2I ==   80 : stisPos = ( CCRPIX1F,  40 )
+                if 0 : print("magic  stisPos     : ",stisPos)     
+                
+                SCIC2Dshape = ( 110 , 213 )  
+                if 0 : print("native SCIC2Dshape : ",SCIC2Dshape)
+                if HNAXIS2I ==  80 : SCIC2Dshape = (  80 , 213 )   
+                if 0 : print("magic  SCIC2Dshape : ",SCIC2Dshape)
+                   
+                voffstis = SCIshape[0]/2 - stisPos[1] + 0 # vertical offset 
+                hoffstis = SCIshape[1]/2 - stisPos[0] + 2 # horizontal offset
+                if 0 : print("native voffstis    : ",voffstis)
+                if HNAXIS2I ==  316 : voffstis = 0
+                if HNAXIS2I ==  512 : voffstis = 0
+                if HNAXIS2I == 1024 : voffstis = 0
+                if 0 : print("magic  voffstis    : ",voffstis)
+                if 0:
+                    print("SCIshape           : ", SCIshape)
+                    print("SCIC2Dshape        : ", SCIC2Dshape)   
+                    print("stisPos            : ", stisPos)    
+                    print("voffstis           : ", voffstis)
+                    print("hoffstis           : ", hoffstis)    
+                    print()
+                # End of getting values for mask creation
+
+                if pyklipB :
+                    # Create mask for each frame that is registered by voffstis and hoffstis
+                    # Make the mask track the stis wedge as it moves around due to pointing error
+                    # This results in the least noisy residuals
+                    #print("SCIC2Dshape, voffstis, hoffstis", SCIC2Dshape, voffstis, hoffstis)
+                    maskFR = createmask (maskL, pyklipB, nmfB, SCIC2Dshape, voffstis, hoffstis) 
+                if nmfB : 
+                    # For NMF, make ONE mask that is as universal to all nmf-bound frames as can be
+                    # (NMF accommodates one mask, passed in on the side.)
+                    # Best bet ? is to stick with stis wedge position, and make mask width more generous
+                    maskFR = createmask (maskL, pyklipB, nmfB, (239,239), voffstis, hoffstis, SCIC2Dshape)         
+        
+        
+        
+        
             parallelTL = [] # parallel Tuple List, a List of Tuples that are going to parallel
-            print()
             #print("kk jj            : ", kk, jj)
             dnfn = allFNL[kk][jj]
             # dnfn ("DNFN") = 'Directory Name and File Name',
@@ -850,38 +997,39 @@ def main_function(
             rtfn            = token_[0] # Root Filename, de-capitalized for frequency
             #print("rtfn             : ", rtfn, end="")
             print(rtfn, "", end="")
-                        
-            SUBARRAY = bool ( HDUL [ 0 ].header[ 'SUBARRAY' ] )
-            POSTARG1        = HDUL [ 0 ].header[ 'POSTARG1' ]  
-            POSTARG2        = HDUL [ 0 ].header[ 'POSTARG2' ]  
-            PROPAPER        = HDUL [ 0 ].header[ 'PROPAPER' ]  
-            CENTERA1        = HDUL [ 0 ].header[ 'CENTERA1' ]  
-            CENTERA2        = HDUL [ 0 ].header[ 'CENTERA2' ]  
-            SIZAXIS1        = HDUL [ 0 ].header[ 'SIZAXIS1' ]  # 1060 for all STIS
-            SIZAXIS2        = HDUL [ 0 ].header[ 'SIZAXIS2' ]  # 110, 427, 512, 1024, 80, 316, etc
-            CCDGAIN         = HDUL [ 0 ].header[ 'CCDGAIN'  ]            
-            NAXIS1          = HDUL [ 1 ].header[ 'NAXIS1'   ]  # subarray width
-            NAXIS2          = HDUL [ 1 ].header[ 'NAXIS2'   ]  # subarray height
-            CRPIX1          = HDUL [ 1 ].header[ 'CRPIX1'   ]  # subarray x-coord
-            CRPIX2          = HDUL [ 1 ].header[ 'CRPIX2'   ]  # subarray y-coord
-            LTV1            = HDUL [ 1 ].header[ 'LTV1'     ]  
-            LTV2            = HDUL [ 1 ].header[ 'LTV2'     ]  
-            FRH             = HDUL [ 1 ].data.shape[0]         
-            FRW             = HDUL [ 1 ].data.shape[1]
+            print()
+            SUBARRAY             = bool ( HDUL [ 0 ].header[ 'SUBARRAY' ] )
+            POSTARG1             = HDUL [ 0 ].header[ 'POSTARG1' ]  
+            POSTARG2             = HDUL [ 0 ].header[ 'POSTARG2' ]  
+            PROPAPER             = HDUL [ 0 ].header[ 'PROPAPER' ]  
+            CENTERA1             = HDUL [ 0 ].header[ 'CENTERA1' ]  
+            CENTERA2             = HDUL [ 0 ].header[ 'CENTERA2' ]  
+            SIZAXIS1             = HDUL [ 0 ].header[ 'SIZAXIS1' ]  # 1060 for all STIS
+            SIZAXIS2             = HDUL [ 0 ].header[ 'SIZAXIS2' ]  # 80, 110, 316, etc
+            CCDGAIN              = HDUL [ 0 ].header[ 'CCDGAIN'  ]
+            LTV1                 = HDUL [ 1 ].header[ 'LTV1'     ]  
+            LTV2                 = HDUL [ 1 ].header[ 'LTV2'     ]  
+            FRH                  = HDUL [ 1 ].data.shape[0]         
+            FRW                  = HDUL [ 1 ].data.shape[1]
             POSTARG1_pixels      = POSTARG1    / PLATESCALE
             POSTARG2_pixels      = POSTARG2    / PLATESCALE        
-            CRPIX1mLTV1          = CRPIX1      - LTV1
-            CRPIX2mLTV2          = CRPIX2      - LTV2
+            CRPIX1mLTV1          = CCRPIX1F    - LTV1
+            CRPIX2mLTV2          = RCRPIX2F    - LTV2
             xActual              = CRPIX1mLTV1 + POSTARG1_pixels
             yActual              = CRPIX2mLTV2 + POSTARG2_pixels
             CENTERA1mxActual     = CENTERA1    - xActual
             CENTERA2myActual     = CENTERA2    - yActual
             pixelsFromLeft       = math.ceil ( xActual ) # which half left or right?
             pixelsFromBottom     = math.ceil ( yActual ) # which half top or bottom? 
-            cCRPIX1F =     CRPIX1  # column stis intrument stellar point Float
-            rCRPIX2F =     CRPIX2  #    row stis intrument stellar point Float
-            cCRPIX1I = int(CRPIX1) # column stis intrument stellar point Integer
-            rCRPIX2I = int(CRPIX2) #    row stis intrument stellar point Integer
+            
+            if 0 : print("native RCRPIX2I",RCRPIX2I)
+            if HNAXIS2I == 80 : 
+                RCRPIX2I = 41
+                RCRPIX2F = 41.0
+            if HNAXIS2I == 316 : 
+                RCRPIX2I = 69
+                RCRPIX2F = 69.0
+            if 0 : print("magic  RCRPIX2I",RCRPIX2I) 
 
             # Get the mask's wedge thickness (which depends on the file header)
             PROPAPER_2 = PROPAPER.replace("WEDGE","")
@@ -894,14 +1042,32 @@ def main_function(
         
             # Get the wcs block to calculate the position angle
             warnings.filterwarnings("ignore",category=wcs.FITSFixedWarning)
-            wcsO = wcs.WCS ( HDUL [ 1 ].header ) # ImageHDU only, not PrimaryHDU
+            wcsO      = wcs.WCS ( HDUL [ 1 ].header ) # ImageHDU only, not PrimaryHDU
             rot_angle = np.rad2deg ( math.atan2 ( wcsO.wcs.cd[1][0], wcsO.wcs.cd[0][0] ) )
             wcspa     = 180 * np.sign ( rot_angle ) - rot_angle
 
             # Get the STIS header's star position in relation to subframe
             # (As distinguished from the star position in relation to the CCD.)
-            stisPos = (cCRPIX1F, rCRPIX2F) # horz center in x, vert center in y
-            usePos = stisPos # Default to STIS header ( CRPIX1, CRPIX2 )
+            stisPos = (CCRPIX1F, RCRPIX2F) # horz center in x, vert center in y
+            # This option of radcPos needs to remain in place here in case
+            # we add stored radonCenters to the headers
+            # to be read back in later, which will preempt needing to run
+            # RadonCenter more than once per frame
+            # But that should not happen until there is a great deal fo confidence 
+            # in exception handling 
+            # Writing in a WRONG radonCenter to the header creates more problems
+            # than running radonCenter fresh each time
+            radcPos = stisPos # Default to STIS header ( CRPIX1, CRPIX2 )
+            #print("native stisPos    : ",stisPos)
+            #print("native radcPos     : ",radcPos)
+            if HNAXIS2I ==  80 : 
+                stisPos = ( CCRPIX1F,  41 )
+                radcPos = stisPos
+            if HNAXIS2I == 316 : 
+                stisPos = ( CCRPIX1F, 69 )
+                radcPos = stisPos
+            #print("magic  stisPos    : ",stisPos)            
+            #print("magic  radcPos     : ",radcPos)      
 
             # Get the mode of EXPTIME, prior to taking data from frames
             exptimeL=[]
@@ -922,87 +1088,418 @@ def main_function(
             stopbeforeindex = startatindex + NFR * 3
             if stopbeforeindex > len ( HDUL ) : stopbeforeindex = len ( HDUL ) 
             # Get SCI frames between index startatindex and stopbeforeindex 
+            
+            # Now we are at the loop that goes over all of the ImageHDUs in any one particular FITS file
             for ii in range ( startatindex, stopbeforeindex, 3 ) :
-                if 0 :
-                    print()
-                    print()
-                    print("kk, jj, ii, nth  : ", kk, jj, ii, int((ii+2)/3), "** This starts a new frame **")
+                if 1 :
+                    #print("kk, jj, ii, nth  : ", kk, jj, ii, int((ii+2)/3), "** This starts a new frame **")
                     print(ii,"", end="" )
+                    
+                if (rtfn,ii) in excepL :
+                    continue                     
+
                 EXPTIME = HDUL [ ii ].header[ 'EXPTIME'     ]
                 if EXPTIME > exptimeMedian :
-                    print(" {EXPTIME>exptimeMedian;dropping frame ", ii, "}", end="") 
+                    print("\n {EXPTIME>exptimeMedian;dropping frame ", ii, "}") 
                     continue
-                
+
 # REQUEST FOR CENTERS FROM HEADER GOES HERE (removed for now)
                 
-                SCI     = HDUL [ ii     ] # SCI subarray aka 'frame'
-                ERR     = HDUL [ ii + 1 ] # ERR subarray aka 'frame'
-                DQ      = HDUL [ ii + 2 ] # DQ  subarray aka 'frame'
+                SCIdataFR = np.array ( HDUL [ ii + 0 ] .data ) # SCI.data
+                ERRdataFR = np.array ( HDUL [ ii + 1 ] .data ) # ERR.data
+                DQ_dataFR = np.array ( HDUL [ ii + 2 ] .data ) #  DQ.data
+                     
 
                 parallelT = (
-                    np.array ( HDUL [ ii + 0 ] .data ) , # SCI.data
-                    np.array ( HDUL [ ii + 1 ] .data ) , # ERR.data
-                    np.array ( HDUL [ ii + 2 ] .data ) , #  DQ.data
-                    rtfn     , 
-                    ii       ,
-                    wcspa    ,
-                    rCRPIX2F ,
-                    cCRPIX1F ,
-                    radcB    ,
-                    NAXIS2   ,
-                    EXPTIME  ,
-                    usePos   ,
-                    maskB    ,
-                    maskL    ,
-                    pyklipB  ,
-                    nmfB     ,
+                    copy.deepcopy(SCIdataFR) ,
+                    copy.deepcopy(ERRdataFR) ,
+                    copy.deepcopy(DQ_dataFR) ,
+                    rtfn      , 
+                    ii        ,
+                    wcspa     ,
+                    RCRPIX2F  ,
+                    CCRPIX1F  ,
+                    radcB     ,
+                    HNAXIS2I  ,
+                    EXPTIME   ,
+                    radcPos   ,
+                    maskB     ,
+                    maskL     ,
+                    pyklipB   ,
+                    nmfB      ,
                     CCDGAIN
                 )
                 parallelTL.append(parallelT)
+                
 
-                SCIcanvas = None
-                ERRcanvas = None
-                center    = None
+                # This section will run the pipeline in Serial,
+                # if useParallelB has been set to False at the top. 
+                if not useParallelB : # 1 for serial, 0 for parallel
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 2 / 14
+                    "We applied a 3 x 3 pixel median filter
+                        for pixels having DQ flag values of 16, 256, 8192"
+                    """
+                    # Apply 3x3 median filter, per Bin Ren
+                    # This overwrites both the SCI and ERR pixel for bad DQ 
+                    if 1 : 
+                        for (rjy,cix), DQpixel in np.ndenumerate(DQ_dataFR):
+                            if(DQpixel == (16 or 256 or 8192)):
+                                SCIdataFR[rjy][cix], ERRdataFR[rjy][cix] = a3b3mf (
+                                    SCIdataFR ,
+                                    ERRdataFR ,
+                                    DQ_dataFR ,
+                                    rjy       ,
+                                    cix
+                                )
+                    if 0 : print("\nS pixel check 1    : ", SCIdataFR[120][140])
+#                    if 1 :
+#                        if kk == 0 and modepix < 1 : # For the case of V-AU-Mic
+#                            SCIdataFR = SCIdataFR / abs(modepix)
+#                            ERRdataFR = ERRdataFR / abs(modepix)
 
-            HDUL.close()
-            parallelProcessPool = Pool ( cpuCount - 1)
-            parallelIterableTimerIndices = range ( len ( parallelTL ) )
-            tasks = [
-                parallelProcessPool.apply_async (
-                    parallelfunction,
-                    args = (
-                        parallelTimerIndex ,
-                        parallelT,
-                        maskFR
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 3 / 14
+                    "we applied an empirical r^(1/2) correction map"
+                    """
+                    # Apply empirical correction map, per Bin Ren
+                    # This applies only to SCI, which is used for centering
+                    if 1 :
+                        plce = 0.5 # power law correction exponent
+                        for (rjy,cix), DQpixel in np.ndenumerate(SCIdataFR):
+                            vdist  = rjy - RCRPIX2I
+                            hdist  = cix - CCRPIX1I
+                            radius = math.sqrt ( pow ( vdist, 2 ) + pow ( hdist, 2 ) )
+                            SCIdataFR[rjy][cix] = SCIdataFR[rjy][cix] * pow ( radius, plce )
+                    if 0 : print("S pixel check 2    : ", SCIdataFR[120][140])
+
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 3 / 14
+                    "We aligned the centers of the stars using Radon Transform-based
+                    center determination method described in Ref. 54 after the above-mentioned
+                    median filtering. We took the SCI extension data, start center searching from
+                    the instrumental center given by its CRPIX1 and CRPIX2 header values; to make
+                    use of the 45 degree and 135 degree major diffraction spikes (Fig. 3) for the
+                    alignment of the STIS images"
+                    """
+                    # Get radonCenter's determination of the stellar point
+                    radcPos = (0.0,0.0)
+                    if radcB : # radonCenter Boolean
+                        radcPos = radonCenter.searchCenter ( 
+                            SCIdataFR         ,
+                            CCRPIX1I             , # x ; column stellar point Integer
+                            RCRPIX2I             , # y ; row    stellar point Integer
+                            size_window = math.floor ( HNAXIS2I / 2 ),
+                            size_cost   = 7  ,
+                            theta       = [45, 135]#, 225, 315]
+                        )                    
+                        if 0 : print("S radcPos          : (", rtfn, ii, ")", f2f2(radcPos))
+
+                    # TODO: Remove blown out / saturated frames PRIOR to Normalize
+                    # It is still possible for there to be frames with median EXPTIME
+                    # that unexpectedly have non-trivial saturated regions. 
+                    # Identifying them will require a crawler function for saturated pixels
+
+
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 4 / 14
+                    "The aligned stellar images are then divided by their exposure times 
+                    (obtained from the EXPTIME header) to have units of counts s^-1,"
+                    """
+                    # Normalize frame
+                    if 1 :
+                        SCIdataFR = SCIdataFR / EXPTIME
+                        ERRdataFR = ERRdataFR / EXPTIME
+                    if 0 : print("S pixel check 3    : ", SCIdataFR[120][140]) # Cannot do this for 80-high
+                    if 0 : print("S C")
+                    checkfornansFR(SCIdataFR)
+                    checkforzerorowsFR(SCIdataFR)
+                    # Get the amount of shift required to center the subarray onto the star 
+                    voff = SCIdataFR.shape[0]/2 - radcPos[1] # vertical offset 
+                    hoff = SCIdataFR.shape[1]/2 - radcPos[0] # horizontal offset
+                    if 0 : print("S native voff      : ",voff)
+                    if SCIdataFR.shape[0] ==  80 : voff = 40.0 - radcPos[1]    
+                    if SCIdataFR.shape[0] == 316 : voff = 69.0 - radcPos[1]
+                    if 0 : print("S magic  voff      : ",voff) 
+                    
+                    shiftedSCIdataFR = scipy.ndimage.shift ( SCIdataFR, np.array ( [ voff, hoff ] ) )
+                    shiftedERRdataFR = scipy.ndimage.shift ( ERRdataFR, np.array ( [ voff, hoff ] ) )
+                    if 0 : print("S pixel check 4    : ", shiftedSCIdataFR[120][140])
+                    if 1:
+                        import matplotlib.pyplot as plt
+                        plt.figure      ( figsize=[5,5] )
+                        plt.imshow      ( shiftedSCIdataFR )
+                        plt.xlim        ( [ 0, shiftedSCIdataFR.shape[1]] )
+                        plt.ylim        ( [ 0, shiftedSCIdataFR.shape[0]] )
+                        plt.title       ("S shiftedSCIdataFR")    
+                    
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 4 / 14                
+                    "cut into sizes of ... 213 x 213 pixel for the A1.0 exposures"
+                    """
+                    lh = 110 # legacy height from Ewan Douglas 110-high observations
+                    lw = 213 # legacy width from Bin Ren NMF reductions with rotation, and Pyklip
+                    
+                    hypotenuse = math.floor ( math.sqrt ( pow ( lh, 2 ) + pow ( lw, 2 ) ) ) 
+                    
+                    SCIC2D = Cutout2D (
+                        shiftedSCIdataFR ,
+                        position = ( shiftedSCIdataFR.shape[1]/2 , shiftedSCIdataFR.shape[0]/2 ),
+                        size     = (lh,lw) ,
+                        wcs      = None # TODO add wcs to this
                     )
-                )
-                for parallelTimerIndex, parallelT in zip ( parallelIterableTimerIndices, parallelTL ) 
-            ]
-            parallelProcessPool.close()
-            parallelProcessPool.join()
-            parallelProcessResult = [ task.get() for task in tasks ]
-            #print("len(parallelProcessResult) : ", len(parallelProcessResult))
+                    if 0 : print("S pixel check 5    : ", shiftedSCIdataFR[120][140])                    
+                    if SCIdataFR.shape[0] == 316 :
+                        SCIC2D = Cutout2D (
+                            shiftedSCIdataFR ,
+                            position = ( shiftedSCIdataFR.shape[1]/2, 69 ),
+                            size     = (lh,lw) ,
+                            wcs      = None # TODO add wcs to this
+                        )
+                    if 0 : print("S pixel check 6    : ", shiftedSCIdataFR[120][140]) 
+                    if 0 : print("S D")
+                    #checkforzerorowsFR(SCIC2D) # TypeError: 'Cutout2D' object is not subscriptable
+                    if 1:
+                        import matplotlib.pyplot as plt
+                        plt.figure      ( figsize=[5,5] ) # [45,45]
+                        plt.imshow      ( SCIC2D.data )
+                        plt.xlim        ( [ -5, SCIC2D.shape[1]+5] )
+                        plt.ylim        ( [ -5, SCIC2D.shape[0]+5] )
+                        plt.title       ("S SCIC2D")                   
+                        
+                    ERRC2D = Cutout2D (
+                        shiftedERRdataFR ,
+                        position = ( shiftedERRdataFR.shape[1]/2 , shiftedERRdataFR.shape[0]/2 ),
+                        size     = (lh,lw) ,
+                        wcs      = None # TODO add wcs to this
+                    )
+                    if ERRdataFR.shape[0] == 316 :
+                        ERRC2D = Cutout2D (
+                            shiftedERRdataFR ,
+                            position = ( shiftedSCIdataFR.shape[1]/2, 69 ),
+                            size     = (lh,lw) ,
+                            wcs      = None # TODO add wcs to this
+                        )                    
+                    if 0 : print("S ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
+                    if 0 : print()
 
-            for ii in range ( len ( parallelProcessResult ) ) :
-                returnT = parallelProcessResult[ii]
-                #print("len(parallelProcessResult[ii]) : ", len(parallelProcessResult[ii]))
-                #print("len(returnT) : ", len(returnT))
-                #print("returnT[2] wcspa : ", returnT[2])
-                SCIcanvas = returnT [ 0 ] 
-                ERRcanvas = returnT [ 1 ] 
-                wcspa     = returnT [ 2 ] # TODO: optimize later
-                center    = returnT [ 3 ] # TODO: optimize later
-                rtfn      = returnT [ 4 ] # TODO: optimize later
-                torL   .append(torI) # torI = kk. 'kk' maintains top level dimension.
-                if kk == 0 :
-                    trgSCIL.append(SCIcanvas)
-                    trgERRL.append(ERRcanvas)
-                if kk == 1 :
-                    refSCIL.append(SCIcanvas)
-                    refERRL.append(ERRcanvas)
-                pasL   .append(wcspa)
-                cenL   .append(center)
-                FRFNL  .append(rtfn)                
+
+# PREMASK S                   
+                    if 1 :
+                        premask = copy.deepcopy ( SCIC2D.data )
+                        premaskFNL.append((rtfn,ii))
+                    
+                    # Apply maskFR if (the mask boolean says to) AND (this is not for NMF)
+                    if pyklipB and maskB and not nmfB :
+                        SCIC2D.data [ maskFR == 0 ] = np.nan
+                        ERRC2D.data [ maskFR == 0 ] = np.nan
+                        if 1 :
+                            import matplotlib.pyplot as plt
+                            plt.rcParams.update({'figure.max_open_warning': 0})
+                            plt.figure      ( figsize=[5,5] ) # [20,20]
+                            plt.imshow      ( SCIC2D.data )
+                            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                            plt.title       ( "S" + rtfn + ", " + str ( ii ) + ", " + str ( (ii+2)/3 ) )
+                    
+                    # If Pyklip, Convert saturated pixels to np.nan, based on gain
+                    # NMF cannot digest nans, so cap the value
+                    if 1 : 
+                        if CCDGAIN == 4 :
+                            #pixel threshold for nan = 130000 / 4 = 32500
+                            if pyklipB :
+                                SCIC2D.data [ SCIC2D.data > 32500 ] = np.nan
+#                            if nmfB :
+#                                ERRC2D.data [ SCIC2D.data > 32500 ] = 100 # not ideal
+#                                SCIC2D.data [ SCIC2D.data > 32500 ] = 10000 # not ideal
+                        if CCDGAIN == 1 :
+                            #pixel threshold for nan =              33000
+                            if pyklipB : 
+                                SCIC2D.data [ SCIC2D.data > 33000 ] = np.nan
+#                            if nmfB : 
+#                                ERRC2D.data [ SCIC2D.data > 33000 ] = 100 # not ideal                                
+#                                SCIC2D.data [ SCIC2D.data > 33000 ] = 10000 # not ideal
+
+                    """
+                    Bin Ren, Laurent Pueyo
+                    "Post-processing of the HST STIS coronagraphic observations" (2017)
+                    Page 5 / 14                
+                    "In order to reduce the color-mismatch which creates unrealistic
+                    halos (e.g., Fig. 8), for each target readout, we normalized itself
+                    and all the PSF readouts by first applying an algorithmic mask
+                    to block the physical wedges and the primary di raction spikes,
+                    then subtracting the mean and dividing the standard deviation of
+                    each readout" [sic]
+                    """
+                    # NOTE THAT: NMF fails if the data is given this operation                
+                    if pyklipB and not nmfB :
+                        if 0 :
+                            import matplotlib.pyplot as plt
+                            plt.figure      ( figsize=[5,5] )
+                            plt.imshow      ( SCIC2D.data )
+                            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                            plt.title       ( "S before sub of mean")                
+                        meanSCIC2Ddata = np.nanmean(SCIC2D.data)
+                        if 0 : print("S meanSCIC2Ddata : ", meanSCIC2Ddata)
+                        meanERRC2Ddata = np.nanmean(ERRC2D.data)
+                        SCIC2D.data = SCIC2D.data - meanSCIC2Ddata
+                        if 0 :
+                            import matplotlib.pyplot as plt
+                            plt.figure      ( figsize=[5,5] )
+                            plt.imshow      ( SCIC2D.data )
+                            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                            plt.title       ( "S after sub of mean")
+                        ERRC2D.data = ERRC2D.data - meanERRC2Ddata
+                        stddevSCIC2D = np.nanstd(SCIC2D.data)
+                        if 0 : print("S stddevSCIC2D : ", stddevSCIC2D)
+                        stddevERRC2D = np.nanstd(ERRC2D.data)
+                        SCIC2D.data = SCIC2D.data / stddevSCIC2D
+                        if 0 :
+                            import matplotlib.pyplot as plt
+                            plt.figure      ( figsize=[5,5] )
+                            plt.imshow      ( SCIC2D.data )
+                            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+                            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+                            plt.title       ( "S after div by std")                                    
+                        ERRC2D.data = ERRC2D.data / stddevERRC2D    
+
+                    # TODO: Bin Ren's sequence takes care of DQ, but, 
+                    #    keep an expansion slot for NOT using every process in Bin Ren's recipe
+                    
+                    # Create a canvas large enough to allow Cutout2D frame rotation
+                    # And transfer the Cutout2D frame to it
+                    # Due to the artifact resulting from ndshift, omit transferring a border of size bb
+                    # The size of the Cutout2D that will be transferred, sans edge, is 'aperture'
+                    aFR = int ( hypotenuse / 2 - SCIC2D.shape[0] / 2 ) # aperture fiducial row (*not frame 'FR')
+                    aFC = int ( hypotenuse / 2 - SCIC2D.shape[1] / 2 ) # aperture fiducial column
+                    bb  = 1
+                    aBR = aFR + bb                   # aperture bottom row 
+                    aTR = aFR - bb + SCIC2D.shape[0] # aperture top    row
+                    aLC = aFC + bb                   # aperture left   column 
+                    aRC = aFC - bb + SCIC2D.shape[1] # aperture right  column  
+
+                    SCIcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
+                    if 0 : print("S pixel check -3    : ", SCIcanvas[120][140])
+                    if pyklipB and not nmfB : SCIcanvas[:] = np.nan   # Pyklip requires nans  background
+                    SCIcanvas [ aBR : aTR , aLC : aRC ] = SCIC2D.data [ bb : - bb , bb : - bb ]
+                    if 0 : print("S pixel check -2    : ", SCIcanvas[120][140])
+                    ERRcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
+                    if pyklipB and not nmfB : ERRcanvas[:] = np.nan   # Pyklip requires nans  background
+                    ERRcanvas [ aBR : aTR , aLC : aRC ] = ERRC2D.data [ bb : - bb , bb : - bb ]
+                    if 0 :
+                        import matplotlib.pyplot as plt     
+                        plt.figure      ( figsize=[3,3] )
+                        plt.imshow      ( SCIcanvas.data )
+                        plt.xlim        ( [ 0, SCIcanvas.shape[1]] )
+                        plt.ylim        ( [ 0, SCIcanvas.shape[0]] )                       
+                    if 0 :
+                        center = radcPos # TODO: Check if this is moot after ndshift
+                    center = (int(hypotenuse/2),int(hypotenuse/2))
+# PREMASK S                   
+                    if 1 : 
+                        premaskcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
+                        if pyklipB and not nmfB : premaskcanvas[:] = np.nan   # Pyklip requires nans  background
+                        premaskcanvas [ aBR : aTR , aLC : aRC ] = premask [ bb : - bb , bb : - bb ]
+#################Anything above this line should be serial                    
+#                
+                # At the end of this recipe, you need to have:
+                # SCIcanvas
+                # ERRcanvas
+                # wcspa
+                # center
+                # rtfn
+                # Put these into a returntuple
+                if useParallelB: # 1 : # 0 for serial, 1 for parallel
+                    SCIcanvas = None
+                    ERRcanvas = None
+                    center    = None
+                
+                if not useParallelB : #0 : # 1 for serial, 0 for parallel
+                    torL   .append(torI) # torI = kk. 'kk' maintains top level dimension.
+                    if 0 : print("S pixel check -1    : ", SCIcanvas[120][140])                    
+                    if kk == 0 :
+                        trgSCIL.append(SCIcanvas)
+                        trgERRL.append(ERRcanvas)
+# PREMASK S   
+                        if 1 :
+                            premask_L.append(premaskcanvas)
+                    if kk == 1 :
+                        refSCIL.append(SCIcanvas)
+                        refERRL.append(ERRcanvas)
+# PREMASK S                   
+                        if 1 : 
+                            premask_L.append(premaskcanvas)
+                    pasL   .append(wcspa)
+                    cenL   .append(center)
+                    FRFNL  .append(rtfn)
+            
+            HDUL.close()
+            if useParallelB : # 1 : # 0 for serial, 1 for parallel
+                parallelProcessPool = Pool ( cpuCount - 1)
+                parallelIterableTimerIndices = range ( len ( parallelTL ) )
+                tasks = [
+                    parallelProcessPool.apply_async (
+                        parallelfunction,
+                        args = (
+                            parallelTimerIndex ,
+                            parallelT,
+                            maskFR
+                        )
+                    )
+                    for parallelTimerIndex, parallelT in zip ( parallelIterableTimerIndices, parallelTL ) 
+                ]
+                parallelProcessPool.close()
+                parallelProcessPool.join()
+                parallelProcessResult = [ task.get() for task in tasks ]
+                print("len(parallelProcessResult) : ", len(parallelProcessResult))
+            if useParallelB : # 1 : # 0 for serial, 1 for parallel
+                for ii in range ( len ( parallelProcessResult ) ) :
+                    returnT = parallelProcessResult[ii]
+                    #print("len(parallelProcessResult[ii]) : ", len(parallelProcessResult[ii]))
+                    #print("len(returnT) : ", len(returnT))
+                    #print("returnT[2] wcspa : ", returnT[2])
+                    SCIcanvas = returnT [ 0 ] 
+                    ERRcanvas = returnT [ 1 ] 
+                    wcspa     = returnT [ 2 ]
+                    center    = returnT [ 3 ]
+                    rtfn      = returnT [ 4 ]
+                    if len ( returnT ) == 7 :
+# PREMASK P                    
+                        premaskcanvas = returnT [ 5 ]
+                        rtfnii        = returnT [ 6 ]  
+                    torL   .append(torI) # torI = kk. 'kk' maintains top level dimension.
+                    if 0 : print("P pixel check -1    : ", SCIcanvas[120][140])                     
+                    if kk == 0 :
+                        trgSCIL.append(SCIcanvas)
+                        trgERRL.append(ERRcanvas)
+# PREMASK P  
+                        if 1 :
+                            premask_L .append(premaskcanvas)
+                            premaskFNL.append((rtfn,rtfnii))
+                        
+                    if kk == 1 :
+                        refSCIL.append(SCIcanvas)
+                        refERRL.append(ERRcanvas)
+# PREMASK P                    
+                        if 1 : 
+                            premask_L .append(premaskcanvas)
+                            premaskFNL.append((rtfn,rtfnii))
+                        
+                    pasL   .append(wcspa)
+                    cenL   .append(center)
+                    FRFNL  .append(rtfn)                
             
 
             
@@ -1013,20 +1510,31 @@ def main_function(
     refERRRA = np.array(refERRL)
     pasRA    = np.array(pasL)
     cenRA    = np.array(cenL)
-    print("torRA   .shape   : ", torRA   .shape)
-    print("trgSCIRA.shape   : ", trgSCIRA.shape)
-    print("refSCIRA.shape   : ", refSCIRA.shape)
-    print("pasRA   .shape   : ", pasRA   .shape)
-    print("cenRA   .shape   : ", cenRA   .shape)
+# PREMASK    
+    premask_RA = np.array(premask_L)
+    print("torRA   .shape     : ", torRA   .shape)
+    print("trgSCIRA.shape     : ", trgSCIRA.shape)
+    print("refSCIRA.shape     : ", refSCIRA.shape)
+    print("pasRA   .shape     : ", pasRA   .shape)
+    print("cenRA   .shape     : ", cenRA   .shape)
+# PREMASK    
+    print("premask_RA   .shape     : ", premask_RA   .shape)
     
     # DIAG , DEVEL , TESTING : will be removed
-    if nmfB : 
-        checkfornans (trgSCIRA)
-        checkfornans (refSCIRA)
-        checkfornans (trgERRRA)
-        checkfornans (refERRRA)
-            
-    return torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR
+#    if nmfB : 
+#        checkfornansDC (trgSCIRA)
+#        checkfornansDC (refSCIRA)
+#        checkfornansDC (trgERRRA)
+#        checkfornansDC (refERRRA)
+#        checkforzerorowsDC (trgSCIRA)
+#        checkforzerorowsDC (refSCIRA)
+#        checkforzerorowsDC (trgERRRA)
+#        checkforzerorowsDC (refERRRA)
+     
+    if 0 :               
+        return torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR
+    if 1 :
+        return torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR, premask_RA, premaskFNL
 
 
 
@@ -1083,27 +1591,42 @@ class stishubbleData(Data):
     
         super(stishubbleData, self).__init__()
         
-        print("trgFNL           : ", trgFNL)
-        print("refFNL           : ", refFNL)
-        print("maskL            : ", maskL)
-        print("maskB            : ", maskB)
-        print("radcB            : ", radcB)
-        print("SFR              : ", SFR)
-        print("NFR              : ", NFR)
+        print("trgFNL             : ", trgFNL)
+        print("refFNL             : ", refFNL)
+        print("maskL              : ", maskL)
+        print("maskB              : ", maskB)
+        print("radcB              : ", radcB)
+        print("SFR                : ", SFR)
+        print("NFR                : ", NFR)
         
-        torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR = main_function(
-                trgFNL  ,
-                refFNL  ,
-                maskL   ,
-                maskB   ,
-                radcB   ,
-                SFR     ,
-                NFR     ,
-                excepL  , 
-                pyklipB ,
-                nmfB
-            ) 
+        if 0 :
+            torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR = main_function(
+                    trgFNL  ,
+                    refFNL  ,
+                    maskL   ,
+                    maskB   ,
+                    radcB   ,
+                    SFR     ,
+                    NFR     ,
+                    excepL  , 
+                    pyklipB ,
+                    nmfB
+                ) 
 
+        if 1 :
+            torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR, premask_RA, premaskFNL = main_function(
+                    trgFNL  ,
+                    refFNL  ,
+                    maskL   ,
+                    maskB   ,
+                    radcB   ,
+                    SFR     ,
+                    NFR     ,
+                    excepL  , 
+                    pyklipB ,
+                    nmfB
+                ) 
+        
         # TODO: Append or concat refSCIRA
         if 1 :
             input_SCI = np.concatenate ( ( trgSCIRA,  refSCIRA ) )
@@ -1112,6 +1635,7 @@ class stishubbleData(Data):
         if 0 :
             input_SCI = trgSCIRA
             input_ERR = trgERRRA
+
         
         # TODO: add refSCIRA for pyklip
         # TODO: trgERRRA, refERRRA are waiting for NMF 
@@ -1132,29 +1656,32 @@ class stishubbleData(Data):
         # There is absolutely utility to keeping reference filenames
         # the present system is to truncate them when time to isolate targets
         filenames  = FRFNL
-        
-        if 0    : 
-            print("torRA            :  [", end="" )
+        if 1 :
+            print("torRA              :  [", end="" )
             for tr in torRA : print(tr, ", ", end="") # SCIcanvas 
             print("]")                    
-            print("input_SCI       :  [", end="" )
+            print("input_SCI          :  [", end="" )
             for fr in input_SCI : print(fr[120][140], ", ", end="") # SCIcanvas 
             print("]")    
-            print("input_ERR       :  [", end="" )
+            print("input_ERR          :  [", end="" )
             for fr in input_ERR : print(fr[120][140], ", ", end="") # SCIcanvas 
             print("]")    
-            print("centers          :  [", end="" )
+            print("centers            :  [", end="" )
             for cen in centers   : print("(", f2f2(cen),  ")", end="")
             print("]")
-            print("parangs          :  [", end="" )
+            print("parangs            :  [", end="" )
             for pa in parangs    : print(f2(pa),        ", ", end="")
             print("]")
-            print("filenames        : ", filenames)
+            print("filenames          : ", filenames)
 
 
 
         self._torRA  = torRA
         self._maskFR = maskFR
+# PREMASK                    
+        if 1 :
+            self._inputpremask = premask_RA        
+            self._premaskFNL   = premaskFNL
         
         # read in the data
         if np.array(input_SCI).ndim == 1:
@@ -1387,3 +1914,4 @@ class stishubbleData(Data):
         except TypeError:
             hdulist.writeto(filepath, clobber=True)
         hdulist.close()
+
