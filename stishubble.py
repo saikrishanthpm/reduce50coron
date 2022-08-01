@@ -11,7 +11,7 @@ import numpy as np
 import astropy.io.fits as fits
 from astropy import wcs
 import math
-import radonCenter
+import centerRadon.radonCenter as radonCenter
 import scipy
 import os
 from astropy.nddata import Cutout2D
@@ -30,7 +30,8 @@ from multiprocessing import Pool
 #SLOPE     = 0.025 # (1/40)
 SLOPE      = (((3.0 - 0.5)/2)/50) # Equals 0.025 Equals 1/40
 PLATESCALE = 0.05
-cpuCount   = 7 # psutil.cpu_count(logical = False)
+#cpuCount   = 7 # psutil.cpu_count(logical = False)
+cpuCount   = 15 # psutil.cpu_count(logical = False)
 useParallelB  = False
 useParallelB  = True
 
@@ -58,8 +59,8 @@ def parallelfunction (
     pyklipB   = parallelT [ 14 ]
     nmfB      = parallelT [ 15 ]
     CCDGAIN   = parallelT [ 16 ]
-    CCRPIX1I  = int(CCRPIX1F) # column stis intrument stellar point Integer
-    RCRPIX2I  = int(RCRPIX2F) #    row stis intrument stellar point Integer
+    CCRPIX1I  = int(CCRPIX1F) # column stis instrument stellar point Integer
+    RCRPIX2I  = int(RCRPIX2F) #    row stis instrument stellar point Integer
     stisPos   = (CCRPIX1F, RCRPIX2F)
     
     """
@@ -82,7 +83,7 @@ def parallelfunction (
                     cix
                 )
                 
-    if 0 : print("\nP pixel check 1    : ", SCIdataFR[120][140])
+    # if 0 : print("\nP pixel check 1    : ", SCIdataFR[120][140])
     """
     Bin Ren, Laurent Pueyo
     "Post-processing of the HST STIS coronagraphic observations" (2017)
@@ -98,7 +99,7 @@ def parallelfunction (
             hdist  = cix - CCRPIX1I
             radius = math.sqrt ( pow ( vdist, 2 ) + pow ( hdist, 2 ) )
             SCIdataFR[rjy][cix] = SCIdataFR[rjy][cix] * pow ( radius, plce )
-    if 0 : print("P pixel check 2    : ", SCIdataFR[120][140])
+    # if 0 : print("P pixel check 2    : ", SCIdataFR[120][140])
 
     """
     Bin Ren, Laurent Pueyo
@@ -122,7 +123,7 @@ def parallelfunction (
             size_cost   = 7  ,
             theta       = [45, 135]#, 225, 315]
         )                    
-        if 0 : print("P radcPos          : (", rtfn, ii, ")", f2f2(radcPos))
+        # if 0 : print("P radcPos          : (", rtfn, ii, ")", f2f2(radcPos))
         
 
     # TODO: Remove blown out / saturated frames PRIOR to Normalize
@@ -141,27 +142,27 @@ def parallelfunction (
     # Normalize frame
     SCIdataFR = SCIdataFR / EXPTIME
     ERRdataFR = ERRdataFR / EXPTIME
-    if 0 : print("P pixel check 3    : ", SCIdataFR[120][140]) # Cannot do this for 80-high    
-    if 0 : print("P C")
+    # if 0 : print("P pixel check 3    : ", SCIdataFR[120][140]) # Cannot do this for 80-high    
+    # if 0 : print("P C")
     
     # Get the amount of shift required to center the subarray onto the star 
     voff = SCIdataFR.shape[0]/2 - radcPos[1] # vertical offset 
     hoff = SCIdataFR.shape[1]/2 - radcPos[0] # horizontal offset
-    if 0 : print("P native voff      : ",voff)
+    # if 0 : print("P native voff      : ",voff)
     if SCIdataFR.shape[0] ==  80 : voff = 40.0 - radcPos[1]    
     if SCIdataFR.shape[0] == 316 : voff = 69.0 - radcPos[1]
-    if 0 : print("P magic  voff      : ",voff)     
+    # if 0 : print("P magic  voff      : ",voff)     
     
     shiftedSCIdataFR = scipy.ndimage.shift ( SCIdataFR, np.array ( [ voff, hoff ] ) )
     shiftedERRdataFR = scipy.ndimage.shift ( ERRdataFR, np.array ( [ voff, hoff ] ) )
-    if 0 : print("P pixel check 4    : ", shiftedSCIdataFR[120][140])
-    if 1:
-        import matplotlib.pyplot as plt
-        plt.figure      ( figsize=[5,5] )
-        plt.imshow      ( shiftedSCIdataFR )
-        plt.xlim        ( [ 0, shiftedSCIdataFR.shape[1]] )
-        plt.ylim        ( [ 0, shiftedSCIdataFR.shape[0]] )
-        plt.title       ("P shiftedSCIdataFR")        
+    # if 0 : print("P pixel check 4    : ", shiftedSCIdataFR[120][140])
+#    if 0:
+#        import matplotlib.pyplot as plt
+#        plt.figure      ( figsize=[5,5] )
+#        plt.imshow      ( shiftedSCIdataFR )
+#        plt.xlim        ( [ 0, shiftedSCIdataFR.shape[1]] )
+#        plt.ylim        ( [ 0, shiftedSCIdataFR.shape[0]] )
+#        plt.title       ("P shiftedSCIdataFR")        
     
     """
     Bin Ren, Laurent Pueyo
@@ -180,7 +181,7 @@ def parallelfunction (
         size     = (lh,lw) ,
         wcs      = None # TODO add wcs to this
     )
-    if 0 : print("P pixel check 5    : ", shiftedSCIdataFR[120][140]) 
+    # if 0 : print("P pixel check 5    : ", shiftedSCIdataFR[120][140]) 
     if SCIdataFR.shape[0] == 316 :
         SCIC2D = Cutout2D (
             shiftedSCIdataFR ,
@@ -188,16 +189,16 @@ def parallelfunction (
             size     = (lh,lw) ,
             wcs      = None # TODO add wcs to this
         )
-    if 0 : print("P pixel check 6    : ", shiftedSCIdataFR[120][140])
-    if 0 : print("P D")
+    # if 0 : print("P pixel check 6    : ", shiftedSCIdataFR[120][140])
+    # if 0 : print("P D")
     
-    if 1:
-        import matplotlib.pyplot as plt
-        plt.figure      ( figsize=[5,5] )
-        plt.imshow      ( SCIC2D.data )
-        plt.xlim        ( [ 0, SCIC2D.shape[1]] )
-        plt.ylim        ( [ 0, SCIC2D.shape[0]] )
-        plt.title       ("P SCIC2D")
+#    if 0:
+#        import matplotlib.pyplot as plt
+#        plt.figure      ( figsize=[5,5] )
+#        plt.imshow      ( SCIC2D.data )
+#        plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+#        plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+#        plt.title       ("P SCIC2D")
         
     ERRC2D = Cutout2D (
         shiftedERRdataFR ,
@@ -212,7 +213,7 @@ def parallelfunction (
             size     = (lh,lw) ,
             wcs      = None # TODO add wcs to this
         )    
-    if 0 : print("P ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
+    # if 0 : print("P ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
     
 
 # PREMASK P                    
@@ -263,38 +264,38 @@ def parallelfunction (
     """
     # NOTE THAT: NMF fails if the data is given this operation                
     if pyklipB and not nmfB :
-        if 0 :
-            import matplotlib.pyplot as plt
-            plt.figure      ( figsize=[5,5] )
-            plt.imshow      ( SCIC2D.data )
-            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
-            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
-            plt.title       ( "P before sub of mean")                
+#        if 0 :
+#            import matplotlib.pyplot as plt
+#            plt.figure      ( figsize=[5,5] )
+#            plt.imshow      ( SCIC2D.data )
+#            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+#            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+#            plt.title       ( "P before sub of mean")                
         meanSCIC2Ddata = np.nanmean(SCIC2D.data)
-        if 0 : print("P meanSCIC2Ddata : ", meanSCIC2Ddata)
+        # if 0 : print("P meanSCIC2Ddata : ", meanSCIC2Ddata)
         meanERRC2Ddata = np.nanmean(ERRC2D.data)
         SCIC2D.data = SCIC2D.data - meanSCIC2Ddata
-        if 0 :
-            import matplotlib.pyplot as plt
-            plt.figure      ( figsize=[5,5] )
-            plt.imshow      ( SCIC2D.data )
-            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
-            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
-            plt.title       ( "P after sub of mean")
+#        if 0 :
+#            import matplotlib.pyplot as plt
+#            plt.figure      ( figsize=[5,5] )
+#            plt.imshow      ( SCIC2D.data )
+#            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+#            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+#            plt.title       ( "P after sub of mean")
         ERRC2D.data = ERRC2D.data - meanERRC2Ddata
         stddevSCIC2D = np.nanstd(SCIC2D.data)
-        if 0 : print("P stddevSCIC2D : ", stddevSCIC2D)
+        # if 0 : print("P stddevSCIC2D : ", stddevSCIC2D)
         stddevERRC2D = np.nanstd(ERRC2D.data)
         SCIC2D.data = SCIC2D.data / stddevSCIC2D
         #if 1 : print("P pixel check -3    : ", SCIC2D.data[120-90][140]) # nan    
         
-        if 1 :
-            import matplotlib.pyplot as plt
-            plt.figure      ( figsize=[5,5] )
-            plt.imshow      ( SCIC2D.data )
-            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
-            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
-            plt.title       ( "P after div by std")                                    
+#        if 0 :
+#            import matplotlib.pyplot as plt
+#            plt.figure      ( figsize=[5,5] )
+#            plt.imshow      ( SCIC2D.data )
+#            plt.xlim        ( [ 0, SCIC2D.shape[1]] )
+#            plt.ylim        ( [ 0, SCIC2D.shape[0]] )
+#            plt.title       ( "P after div by std")                                    
         ERRC2D.data = ERRC2D.data / stddevERRC2D    
 
     # TODO: Bin Ren's sequence takes care of DQ, but, 
@@ -313,22 +314,22 @@ def parallelfunction (
     aRC = aFC - bb + SCIC2D.shape[1] # aperture right  column  
 
     SCIcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
-    if 0 : print("P pixel check -3    : ", SCIcanvas[120][140]) # 0.0
+    # if 0 : print("P pixel check -3    : ", SCIcanvas[120][140]) # 0.0
     if pyklipB and not nmfB : SCIcanvas[:] = np.nan   # Pyklip requires nans  background
     SCIcanvas [ aBR : aTR , aLC : aRC ] = SCIC2D.data [ bb : - bb , bb : - bb ]
-    if 0 : print("P pixel check -2    : ", SCIcanvas[120][140])    
+    # if 0 : print("P pixel check -2    : ", SCIcanvas[120][140])    
     ERRcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
     if pyklipB and not nmfB : ERRcanvas[:] = np.nan   # Pyklip requires nans  background
     ERRcanvas [ aBR : aTR , aLC : aRC ] = ERRC2D.data [ bb : - bb , bb : - bb ]
-    if 0 :
-        import matplotlib.pyplot as plt     
-        plt.figure      ( figsize=[3,3] )
-        plt.imshow      ( SCIcanvas.data )
-        plt.xlim        ( [ 0, SCIcanvas.shape[1]] )
-        plt.ylim        ( [ 0, SCIcanvas.shape[0]] )                
+#    if 0 :
+#        import matplotlib.pyplot as plt     
+#        plt.figure      ( figsize=[3,3] )
+#        plt.imshow      ( SCIcanvas.data )
+#        plt.xlim        ( [ 0, SCIcanvas.shape[1]] )
+#        plt.ylim        ( [ 0, SCIcanvas.shape[0]] )                
                     
-    if 0 :
-        center = radcPos # TODO: Check if this is moot after ndshift
+#    if 0 :
+#        center = radcPos # TODO: Check if this is moot after ndshift
     center = (int(hypotenuse/2),int(hypotenuse/2))    
 
 # PREMASK P                   
@@ -337,14 +338,14 @@ def parallelfunction (
         if pyklipB and not nmfB : premaskcanvas[:] = np.nan   # Pyklip requires nans  background
         premaskcanvas [ aBR : aTR , aLC : aRC ] = premask [ bb : - bb , bb : - bb ]
 
-    if 0 :                         
-        returnT = (
-            SCIcanvas ,
-            ERRcanvas ,
-            wcspa     ,
-            center    ,
-            rtfn      ,
-        )
+#    if 0 :                         
+#        returnT = (
+#            SCIcanvas ,
+#            ERRcanvas ,
+#            wcspa     ,
+#            center    ,
+#            rtfn      ,
+#        )
     if 1 :                         
         returnT = (
             SCIcanvas ,
@@ -479,7 +480,7 @@ def viewprocessedframes ( DC, filenames, PAs, pyklipB, nmfB ) : # Data Cube (TOD
      
           
     
-def viewpreparedframes ( datacube, zoom, sidelength, datacubeFNs, reticleB = True ) :
+def viewpreparedframes ( datacube, zoom, sidelength, datacubeFNs, fnprefix, tag, reticleB = True ) :
     """
     Displays the frames that have been inputted and processed,
     prior to them being given over to Pyklip or NMF_imaging
@@ -494,92 +495,195 @@ def viewpreparedframes ( datacube, zoom, sidelength, datacubeFNs, reticleB = Tru
     Paints tick marks       
     """
     
+    print ("sidelength            : ", sidelength, "units of 72 pixels")    
+    datacube_copy      = copy.deepcopy(datacube)    
+    print ("len (datacube_copy)   : ", len (datacube_copy), "unique frames, including both target and reference")
+    sidelengthpixels   = sidelength * 72
+    print ("sidelengthpixels      : ", sidelengthpixels, "monoplot width, and/or height, in pixels")
+    multisidelengthMAX = 2 ** 16 # matplotlib hard-coded limit
+    print ("multisidelengthMAX    : ", multisidelengthMAX, "pixels")    
+    rowMAX             = int ( multisidelengthMAX / sidelengthpixels )
+    print ("rowMAX                : ", rowMAX)    
+    colXPR             = 6 # 3 is ideal, for me, for this workstation, using one vertical monitor
+    print ("colXPR                : ", colXPR,", note: equates to colMAX")    
+#    print("      len ( datacube_copy ) / colXPR       : ", len ( datacube_copy ) / colXPR )
+#    print("int ( len ( datacube_copy ) / colXPR )     : ", int ( len ( datacube_copy ) / colXPR ) )
+#    print("int ( len ( datacube_copy ) / colXPR ) + 1 : ", int ( len ( datacube_copy ) / colXPR ) + 1)
+#    print("math.ceil(len (datacube_copy) / colXPR)    : ", math.ceil(len (datacube_copy) / colXPR))
+#    if len ( datacube_copy ) / colXPR == 0 :
+#        rowXPR         = int ( len (datacube_copy) / colXPR )
+#    else :
+#        rowXPR         = int ( len (datacube_copy) / colXPR ) + 1
+    rowXPR = math.ceil(len (datacube_copy) / colXPR)
+    print ("rowXPR 1              : ", rowXPR)
+    if rowXPR > rowMAX : rowXPR = rowMAX
+    print ("rowXPR 2              : ", rowXPR)
+    monoplotsavailable     = rowXPR * colXPR   
+    print ("monoplotsavailable    : ", monoplotsavailable, "individual monoplots available in this multiplot")    
+    multiplotwidth     = colXPR * sidelength
+    print ("multiplotwidth        : ", multiplotwidth, "units of 72 pixels")    
+    multiplotheight    = rowXPR * sidelength
+    print ("multiplotheight       : ", multiplotheight, "units of 72 pixels")    
+    numberofmultiplots = 1 # assume default of 1
+    if len ( datacube_copy ) / colXPR > rowMAX :
+        numberofmultiplots = math.ceil ( len ( datacube_copy ) / colXPR / rowMAX )     
+    print ("numberofmultiplots    : ", numberofmultiplots, ", note: There will need to be this many multiplots")    
     
-
-    ii = 0 # index for all frames in class final dataset member
-    #if zoom > self._input[0].shape[1] or zoom > self._input[0].shape[0] :
-    if zoom > datacube[0].shape[1] or zoom > datacube[0].shape[0] :
-        zoom = 0
-    #for input_SCI in self._input :
-    datacube_copy = copy.deepcopy(datacube)
+#    import matplotlib.pyplot as plt     
+#    plt.figure ( figsize = ( multiplotwidth, multiplotheight ) ) # first is width, second is height
+#    plt.subplots_adjust(hspace=0.1)
+#    for n, frame in enumerate(datacube_copy):
+#        ax=plt.subplot(numberofrows,numberofcolumns,n+1)
+#        plt.imshow(frame)
+#        frame.plot(ax=ax)
+        
+# Right here, do some math using insight into matplotlib's natural maximum size limits
+# If the desired sidelength, combined with the extant size of the datacube, results 
+# in a proposed final array that exceeds the natural limit, then, 
+# break off a datacubeslice of the datacube_copy such that it falls with that size limit
+# and do that for each subsequent remainder of the total extant datacube_copy,
+# until such time as you have produced some number of multicell images
+# that cover the entire datacube_copy.
+# There may be some elegance in dividing the size of the extant datacube_copy combination with sidelenth
+# by the natural size limit, so as to find a way to break up the datacube_copy
+# into unobjectionable equal size groupings. That may only be for preciousness' sake, I don't know.
+# So I think there can be a jj loop over this ii loop. Or, there will be n individual ii loop inside each run of the jj loop, and, MOST IMPORTANTLY, the ii will start with a handoff index value from the prior jj loop
+# So even if ii starts at 0 for each cycle in jj, the display shows ii + FUDGEFIDUCIAL
+# so that the User only sees the effect of a continuous ii
+# So this is slicing off datacubeslices of a larger extant array
+    print()
+    iifid = 0
+    if zoom > datacube[0].shape[1] or zoom > datacube[0].shape[0] : zoom = 0
+    import matplotlib.pyplot as plt
+         
+    for jj in range ( numberofmultiplots ) :
+        plt.figure ( figsize = ( multiplotwidth, multiplotheight ) ) # first is width, second is height
+        plt.subplots_adjust(hspace=0.1)
     
-    for input_SCI in datacube_copy :
-        H = input_SCI.shape[0]
-        W = input_SCI.shape[1]
-        if H % 2 == 0 : H = H - 1
-        if W % 2 == 0 : W = W - 1
-        CH = H / 2 # center H = H / 2 ; Hd2
-        CW = W / 2 # center W = W / 2 ; Wd2
-        CHF = math.floor ( CH )
-        CWF = math.floor ( CW )
-        CHC = math.ceil  ( CH )
-        CWC = math.ceil  ( CW )
-        # "n" = ceNter, "r" = row, "c" = column, "p" = plus, "m" = minus
-        CHp  = CHC + 10
-        CHm  = CHF - 10
-        CWp  = CWC + 10
-        CWm  = CWF - 10
-        
-        if reticleB : 
-            # Vertical and horizontal guides
-            input_SCI [ CHp               ,       0 : CWm - 5 ] = np.nan # UL _
-            input_SCI [ CHm               ,       0 : CWm - 5 ] = np.nan # LL _
-            input_SCI [ CHp               , CWp + 6 : W       ] = np.nan # UR _
-            input_SCI [ CHm               , CWp + 6 : W       ] = np.nan # LR _
-
-            input_SCI [       0 : CHm - 5 , CWm               ] = np.nan # LL |
-            input_SCI [       0 : CHm - 5 , CWp               ] = np.nan # LR |
-            input_SCI [ CHp + 6 : H       , CWm               ] = np.nan # UL |
-            input_SCI [ CHp + 6 : H       , CWp               ] = np.nan # UR |
-
-            # Diagonal guides
-            for R in range ( CHm - 5 ): # R is just Row
-                input_SCI [ R         ] [ R + 5     ] = np.nan    # LLB"/"
-                input_SCI [ R         ] [ H - R - 6 ] = np.nan  # LRB"\"
-            for R in range ( CHp + 5, H, 1 ):
-                input_SCI [ R         ] [ H - R + 4 ] = np.nan  # ULT"\"
-            for R in range ( CHp + 5 + 1, H, 1):
-                input_SCI [ R         ] [ R - 5     ] = np.nan    # URT"/"
+        print()    
+        print("Index jj                   : ", jj, "out of a total N =", numberofmultiplots)
+        if   jj <  numberofmultiplots - 1 :
+            datacubeslice = datacube_copy [ iifid*jj : iifid*jj + rowXPR * colXPR ]
+        elif jj == numberofmultiplots - 1 :
+            datacubeslice = datacube_copy [ iifid*jj : None ]
+        print("iifid*jj                   : ", iifid*jj, "starting index")
+        print("iifid*jj + rowXPR * colXPR : ", iifid*jj + rowXPR * colXPR, "ending index")
+        print("len(datacubeslice)         : ", len(datacubeslice))
+    #    for input_SCI in datacube_copy :
+#        for ii, input_SCI in enumerate ( datacube_copy ) :
+        for ii, input_SCI in enumerate ( datacubeslice ) :
+    #        print(datacubeFNs[ii][0],datacubeFNs[ii][1])
+#            print()
+#            print("jj                     : ", jj)
+#            print("sliceii                : ", ii)
+#            print("iifid*jj               : ", iifid*jj)
+#            print("datacubeii             : ", ii+iifid*jj) 
+            print ( 
+#                "{:>8.4f}".format(value)
+                  "{:>6}".format(            ii+iifid*jj)
+                , ""
+                ,                datacubeFNs[ii+iifid*jj][0]
+                , "{:>3}".format(datacubeFNs[ii+iifid*jj][1])
+                , ","
+                , end=""
+            )
+            if (ii+iifid*jj > 0) and ((ii+iifid*jj+1) % 5 == 0) : print()
+            H = input_SCI.shape[0]
+            W = input_SCI.shape[1]
+            if H % 2 == 0 : H = H - 1
+            if W % 2 == 0 : W = W - 1
+            CH = H / 2 # center H = H / 2 ; Hd2
+            CW = W / 2 # center W = W / 2 ; Wd2
+            CHF = math.floor ( CH )
+            CWF = math.floor ( CW )
+            CHC = math.ceil  ( CH )
+            CWC = math.ceil  ( CW )
+            # "n" = ceNter, "r" = row, "c" = column, "p" = plus, "m" = minus
+            CHp  = CHC + 10
+            CHm  = CHF - 10
+            CWp  = CWC + 10
+            CWm  = CWF - 10
             
-            for C in range ( CWm - 5 ): # C is just Col
-                input_SCI [ C + 5     ] [ C         ] = np.nan    # LLT"/" 
-                input_SCI [ W - C - 6 ] [ C         ] = np.nan  # ULB "\" 
-            for C in range ( CWp + 5, W, 1 ):
-                input_SCI [ W - C + 4 ] [ C         ] = np.nan  # LRT "\"
-            for C in range ( CWp + 5 + 1, W, 1 ):
-                input_SCI [ C - 5     ] [ C         ] = np.nan    # URB "/" 
+            if reticleB : 
+                # Vertical and horizontal guides
+                input_SCI [ CHp               ,       0 : CWm - 5 ] = np.nan # UL _
+                input_SCI [ CHm               ,       0 : CWm - 5 ] = np.nan # LL _
+                input_SCI [ CHp               , CWp + 6 : W       ] = np.nan # UR _
+                input_SCI [ CHm               , CWp + 6 : W       ] = np.nan # LR _
+
+                input_SCI [       0 : CHm - 5 , CWm               ] = np.nan # LL |
+                input_SCI [       0 : CHm - 5 , CWp               ] = np.nan # LR |
+                input_SCI [ CHp + 6 : H       , CWm               ] = np.nan # UL |
+                input_SCI [ CHp + 6 : H       , CWp               ] = np.nan # UR |
+
+                # Diagonal guides
+                for R in range ( CHm - 5 ): # R is just Row
+                    input_SCI [ R         ] [ R + 5     ] = np.nan    # LLB"/"
+                    input_SCI [ R         ] [ H - R - 6 ] = np.nan  # LRB"\"
+                for R in range ( CHp + 5, H, 1 ):
+                    input_SCI [ R         ] [ H - R + 4 ] = np.nan  # ULT"\"
+                for R in range ( CHp + 5 + 1, H, 1):
+                    input_SCI [ R         ] [ R - 5     ] = np.nan    # URT"/"
+                
+                for C in range ( CWm - 5 ): # C is just Col
+                    input_SCI [ C + 5     ] [ C         ] = np.nan    # LLT"/" 
+                    input_SCI [ W - C - 6 ] [ C         ] = np.nan  # ULB "\" 
+                for C in range ( CWp + 5, W, 1 ):
+                    input_SCI [ W - C + 4 ] [ C         ] = np.nan  # LRT "\"
+                for C in range ( CWp + 5 + 1, W, 1 ):
+                    input_SCI [ C - 5     ] [ C         ] = np.nan    # URB "/" 
+                
+                # Diagonal cross hairs
+                for R in range ( CHm, CHp, 1 ):
+                    input_SCI [ R ] [ R         ] = np.nan
+                    input_SCI [ R ] [ H - R - 1 ] = np.nan
+
+                # Tick marks
+                for skip05 in range(10,71,5):
+                    input_SCI [ CHF          ] [ CWF + skip05 ] = np.nan
+                    input_SCI [ CHF + skip05 ] [ CWF          ] = np.nan
+                    input_SCI [ CHF          ] [ CWF - skip05 ] = np.nan
+                    input_SCI [ CHF - skip05 ] [ CWF          ] = np.nan
+                for skip10 in range(10,71,10):
+                    input_SCI [ CHF + 1      ] [ CWF + skip10 ] = np.nan
+                    input_SCI [ CHF + skip10 ] [ CWF + 1      ] = np.nan
+                    input_SCI [ CHF + 1      ] [ CWF - skip10 ] = np.nan
+                    input_SCI [ CHF - skip10 ] [ CWF + 1      ] = np.nan
+            #print()
+            if 1: 
+    #            import matplotlib.pyplot as plt                
+    #            plt.figure      ( figsize=[sidelength,sidelength] )
+#                ax=plt.subplot(numberofrows,numberofcolumns,ii+iifid+1)
+                subplotindex = ii + 1
+                #print(",\t subplotindex : ", subplotindex)
+                ax = plt.subplot ( rowXPR, colXPR, subplotindex )
+                # the 1 here ^^^ has to do with indexing in matplotlib
+                # I think indexing in matplotlib starts at 1
+                plt.imshow      ( input_SCI ) # , cmap='gray'    
+                plt.xlim        ( [ zoom, W - zoom ] ) 
+                plt.ylim        ( [ zoom, H - zoom ] )            
+                #plt.title       ( "self._input " + self._filenames[ii] + ", " + str(ii) )
+    #            if datacubeFNs :
+    #            plt.title       ( "CD,presently " + datacubeFNs[ii] + ", " + str(ii) )
+                plt.title       ( datacubeFNs[ii+iifid*jj][0] + " ImageHDU index: " + str(datacubeFNs[ii+iifid*jj][1]) + ". (Datacube index: " + str(ii+iifid*jj) + ".)")
+    #            else :
+    #                plt.title       ( "CD,presently, " + str(ii) )
             
-            # Diagonal cross hairs
-            for R in range ( CHm, CHp, 1 ):
-                input_SCI [ R ] [ R         ] = np.nan
-                input_SCI [ R ] [ H - R - 1 ] = np.nan
-
-            # Tick marks
-            for skip05 in range(10,71,5):
-                input_SCI [ CHF          ] [ CWF + skip05 ] = np.nan
-                input_SCI [ CHF + skip05 ] [ CWF          ] = np.nan
-                input_SCI [ CHF          ] [ CWF - skip05 ] = np.nan
-                input_SCI [ CHF - skip05 ] [ CWF          ] = np.nan
-            for skip10 in range(10,71,10):
-                input_SCI [ CHF + 1      ] [ CWF + skip10 ] = np.nan
-                input_SCI [ CHF + skip10 ] [ CWF + 1      ] = np.nan
-                input_SCI [ CHF + 1      ] [ CWF - skip10 ] = np.nan
-                input_SCI [ CHF - skip10 ] [ CWF + 1      ] = np.nan
-
-        if 1: 
-            import matplotlib.pyplot as plt                
-            plt.figure      ( figsize=[sidelength,sidelength] )
-            plt.imshow      ( input_SCI ) # , cmap='gray'
-            plt.xlim        ( [ zoom, W - zoom ] ) 
-            plt.ylim        ( [ zoom, H - zoom ] )            
-            #plt.title       ( "self._input " + self._filenames[ii] + ", " + str(ii) )
-#            if datacubeFNs :
-#            plt.title       ( "CD,presently " + datacubeFNs[ii] + ", " + str(ii) )
-            plt.title       ( datacubeFNs[ii][0] + " ImageHDU index: " + str(datacubeFNs[ii][1]) + ". (Datacube index: " + str(ii) + ".)")
-#            else :
-#                plt.title       ( "CD,presently, " + str(ii) )
+    #        ii = ii + 1
+        iifid = ii + 1
+        print()
+        print("ii    at end of jj          : ", ii)
+        print("iifid at end of jj          : ", iifid, "next starting point, for the next ii")
+#    plotName = fnprefix + "-2.png"
+#    plt.savefig ( plotName , dpi = 150 )
+        plotName = fnprefix + tag + "dcs" + str(jj) + ".jpg" # data cube slice
+#        plt.savefig ( plotName , dpi = 30 ) # dpi = 15 works, but is not useful
+#        plt.savefig ( plotName , dpi = 35 ) # dpi = 30 works, but I cannot see the labels; 40 goes blue        
+        plt.savefig ( plotName , dpi = 36 ) # 35 just barely allows you to discern label
+#        plt.savefig ( plotName )        
         
-        ii = ii + 1
+        
+        
         
 def createmask (maskL, pyklipB, nmfB, maskshape, voff, hoff, apertureshape = None):
     """
@@ -632,8 +736,8 @@ def createmask (maskL, pyklipB, nmfB, maskshape, voff, hoff, apertureshape = Non
     wedgeshiftI   = wedgeshiftI   + round ( mhoff )
     
     # NEVER DELETE DIAG CENTER REGISTER / FIDUCIAL MARKER
-    if 0 :
-        maskFR[mvc][mhc]=np.nan # fiducial marker
+#    if 0 :
+#        maskFR[mvc][mhc]=np.nan # fiducial marker
             
     # Wedge A
     if 1 : 
@@ -641,7 +745,7 @@ def createmask (maskL, pyklipB, nmfB, maskshape, voff, hoff, apertureshape = Non
         wedgestartY = mvc
         wedgeX      = wedgestartX
         wedgeY      = wedgestartY
-        if 0 : maskFR[wedgestartY][wedgestartX]=np.nan # wedge fiducial marker
+#        if 0 : maskFR[wedgestartY][wedgestartX]=np.nan # wedge fiducial marker
         for row in range ( mvc ) :
             halfwidthtop = int ( halfwedgeWpix + ( ( wedgeY + row ) * SLOPE ) )
             for col in range ( halfwidthtop ) :
@@ -653,7 +757,7 @@ def createmask (maskL, pyklipB, nmfB, maskshape, voff, hoff, apertureshape = Non
             for col in range ( halfwidthbottom ) :
                 maskFR [ wedgeY - row ] [ wedgeX + col ] = 0
                 maskFR [ wedgeY - row ] [ wedgeX - col ] = 0
-        if 0 : maskFR[wedgestartY][wedgestartX]=np.nan # wedge fiducial marker
+#        if 0 : maskFR[wedgestartY][wedgestartX]=np.nan # wedge fiducial marker
     
     # Spider legs / Diffraction spikes
     if 1 : 
@@ -676,19 +780,19 @@ def createmask (maskL, pyklipB, nmfB, maskshape, voff, hoff, apertureshape = Non
                     maskFR [ - legY+1 + lvs ] [         legX + S + col - int(legWpix/2)] = 0 # LR
                 if W - 1 - legX + S - col + int(legWpix/2) < 239 and - legY + lvs > - H - 1 :
                     maskFR [ - legY+1 + lvs ] [ W - 1 - legX + S - col + int(legWpix/2)] = 0 # LL        
-        if 0 : maskFR[legstartY][legstartX+S]=np.nan # legs fiducial marker
+#        if 0 : maskFR[legstartY][legstartX+S]=np.nan # legs fiducial marker
     
     # NEVER DELETE DIAG CENTER REGISTER / FIDUCIAL MARKER
-    if 0 :
-        maskFR[mvc][mhc]=np.nan # fiducial marker
-    
-    if 0 :
-        import matplotlib.pyplot as plt     
-        plt.figure      ( figsize=[5,5] ) #[30,30]
-        plt.imshow      ( maskFR )
-        plt.xlim        ( [ 0, maskFR.shape[1] - 0] )
-        plt.ylim        ( [ 0, maskFR.shape[0] - 0] )
-        assert False
+#    if 0 :
+#        maskFR[mvc][mhc]=np.nan # fiducial marker
+#    
+#    if 0 :
+#        import matplotlib.pyplot as plt     
+#        plt.figure      ( figsize=[5,5] ) #[30,30]
+#        plt.imshow      ( maskFR )
+#        plt.xlim        ( [ 0, maskFR.shape[1] - 0] )
+#        plt.ylim        ( [ 0, maskFR.shape[0] - 0] )
+##        assert False
     return maskFR
 
 
@@ -894,7 +998,7 @@ def main_function(
     # Index [0] accesses the list of all target FITS files
     # Index [1] accesses the list of all reference FITS files
     for kk in range ( len ( allFNL ) ) :
-        print("\nkk                 : ", kk)
+        # if 0 : print("\nkk                 : ", kk)
         # TODO: I can change all kk to tr if necessary
         torI = kk # target or reference Index (or, Integer, capitalized)
         FNL = allFNL[kk] # Filename List
@@ -914,7 +1018,7 @@ def main_function(
         # This will be either the list of target FITS files, or the list of reference FITS files
         # Loop through all of the FITS files in this list  
         for jj in range ( len ( allFNL[kk] ) ):
-            print("\njj                 : ", jj)
+            # if 0 : print("\njj                 : ", jj)
         
             # (If stellar point was ndshifted, the wedge was ndshifted...)
             # These values do not change after the first frame, so, 
@@ -925,62 +1029,18 @@ def main_function(
             RCRPIX2F = (fits.open(allFNL[kk][jj]))[1].header['CRPIX2'] # stellar point row
             CCRPIX1I = int(CCRPIX1F) # column stis intrument stellar point Integer
             RCRPIX2I = int(RCRPIX2F) #    row stis intrument stellar point Integer
-            
-            print("WNAXIS1I            : ", WNAXIS1I)
-            print("HNAXIS2I            : ", HNAXIS2I)   
-            print("CCRPIX1F            : ", CCRPIX1F)    
-            print("RCRPIX2F            : ", RCRPIX2F)
-            print("CCRPIX1I            : ", CCRPIX1I)    
-            print("RCRPIX2I            : ", RCRPIX2I)
-            
-            if maskB :
-                # Start of getting values for mask creation 
-                # Make a mask that is "ndshifted" to same amount as the stellar point
-                #    
-                SCIshape = ( HNAXIS2I, WNAXIS1I ) 
-                
-                stisPos  = ( CCRPIX1F, RCRPIX2F )
-                if 0 : print("native stisPos     : ",stisPos)
-                if HNAXIS2I ==   80 : stisPos = ( CCRPIX1F,  40 )
-                if 0 : print("magic  stisPos     : ",stisPos)     
-                
-                SCIC2Dshape = ( 110 , 213 )  
-                if 0 : print("native SCIC2Dshape : ",SCIC2Dshape)
-                if HNAXIS2I ==  80 : SCIC2Dshape = (  80 , 213 )   
-                if 0 : print("magic  SCIC2Dshape : ",SCIC2Dshape)
-                   
-                voffstis = SCIshape[0]/2 - stisPos[1] + 0 # vertical offset 
-                hoffstis = SCIshape[1]/2 - stisPos[0] + 2 # horizontal offset
-                if 0 : print("native voffstis    : ",voffstis)
-                if HNAXIS2I ==  316 : voffstis = 0
-                if HNAXIS2I ==  512 : voffstis = 0
-                if HNAXIS2I == 1024 : voffstis = 0
-                if 0 : print("magic  voffstis    : ",voffstis)
-                if 0:
-                    print("SCIshape           : ", SCIshape)
-                    print("SCIC2Dshape        : ", SCIC2Dshape)   
-                    print("stisPos            : ", stisPos)    
-                    print("voffstis           : ", voffstis)
-                    print("hoffstis           : ", hoffstis)    
-                    print()
-                # End of getting values for mask creation
-
-                if pyklipB :
-                    # Create mask for each frame that is registered by voffstis and hoffstis
-                    # Make the mask track the stis wedge as it moves around due to pointing error
-                    # This results in the least noisy residuals
-                    #print("SCIC2Dshape, voffstis, hoffstis", SCIC2Dshape, voffstis, hoffstis)
-                    maskFR = createmask (maskL, pyklipB, nmfB, SCIC2Dshape, voffstis, hoffstis) 
-                if nmfB : 
-                    # For NMF, make ONE mask that is as universal to all nmf-bound frames as can be
-                    # (NMF accommodates one mask, passed in on the side.)
-                    # Best bet ? is to stick with stis wedge position, and make mask width more generous
-                    maskFR = createmask (maskL, pyklipB, nmfB, (239,239), voffstis, hoffstis, SCIC2Dshape)         
-        
-        
-        
-        
-            parallelTL = [] # parallel Tuple List, a List of Tuples that are going to parallel
+            # if 0 : print("WNAXIS1I            : ", WNAXIS1I)
+            # if 0 : print("HNAXIS2I            : ", HNAXIS2I)   
+            # if 0 : print("CCRPIX1F            : ", CCRPIX1F)    
+            # if 0 : print("RCRPIX2F            : ", RCRPIX2F)
+            # if 0 : print("CCRPIX1I            : ", CCRPIX1I)    
+            # if 0 : print("RCRPIX2I            : ", RCRPIX2I)
+            PROPAPER = (fits.open(allFNL[kk][jj]))[0].header['PROPAPER'] # SCIENCE INSTRUMENT CONFIGURATION
+            # if 0 : print("PROPAPER            : ", PROPAPER)
+            TARGNAME = (fits.open(allFNL[kk][jj]))[0].header['TARGNAME'] # PROPOSER's TARGET NAME
+            # if 0 : print("TARGNAME            : ", TARGNAME)
+            PROPOSID = (fits.open(allFNL[kk][jj]))[0].header['PROPOSID'] # PROPOSER's TARGET NAME
+            # if 0 : print("PROPOSID            : ", PROPOSID)
             #print("kk jj            : ", kk, jj)
             dnfn = allFNL[kk][jj]
             # dnfn ("DNFN") = 'Directory Name and File Name',
@@ -995,13 +1055,129 @@ def main_function(
             split           = os.path.splitext ( os.path.basename ( dnfn ) )
             token_          = split[0].split('_')
             rtfn            = token_[0] # Root Filename, de-capitalized for frequency
-            #print("rtfn             : ", rtfn, end="")
-            print(rtfn, "", end="")
-            print()
+            # if 0 : print("rtfn               : ", rtfn)
+#            print(rtfn, "", end="")            
+            if "BAR" in PROPAPER : 
+                print("PROPAPER has BAR")
+                continue
+#                assert False
+            if "50CORON" in PROPAPER : 
+                print("PROPAPER has 50CORON")
+                continue
+
+
+            else : 
+                PROPAPER_2 = PROPAPER.replace("WEDGE","")
+                if   "A" in PROPAPER_2 : wedgeletter = "A"
+                elif "B" in PROPAPER_2 : 
+                    wedgeletter = "B" # Just leave for expansion
+                    continue
+                wedgearcsecF = float ( PROPAPER_2.replace ( wedgeletter, "" ) )
+                wedgepixelsF = wedgearcsecF / PLATESCALE            
+            
+#                print("PROPAPER_2          : ", PROPAPER_2)
+#                print("wedgeletter         : ", wedgeletter)            
+#                print("wedgearcsecF        : ", wedgearcsecF)
+#                print("wedgepixelsF        : ", wedgepixelsF)   
+         
+
+                        
+            if maskB :
+                # Start of getting values for mask creation 
+                SCIshape = ( HNAXIS2I, WNAXIS1I )                 
+                stisPos  = ( CCRPIX1F, RCRPIX2F )
+                #if 1 : print("native stisPos     : ",stisPos)
+                if wedgeletter == "A" and wedgearcsecF == 1.0 and HNAXIS2I ==   80 : 
+                    stisPos = ( CCRPIX1F,  40 )
+                    # Make the mask for the wedge       ___ arcseconds wide
+                    # Make the mask for the spider legs ___ arcseconds wide (horizontally)
+                    # Make the mask for the wedge       shift to the left by __ pixels 
+                    # Make the mask for the spider legs shift to the left by __ pixels
+                    # Leave alone / duplicate the vertical shift for the spider legs
+                    maskL = ( 0.8, 0.3, -2, -2, maskL[4]) # override wedge width and position
+                #if 1 : print("magic  stisPos     : ",stisPos)     
+                
+                SCIC2Dshape = ( 110 , 213 ) # Default shape for nearly all
+                #if 1 : print("native SCIC2Dshape : ",SCIC2Dshape)
+                if wedgeletter == "A" and wedgearcsecF == 1.0 and HNAXIS2I ==  80 : 
+                    SCIC2Dshape = (  80 , 213 ) # override the only size < 110   
+                #if 1 : print("magic  SCIC2Dshape : ",SCIC2Dshape)
+                   
+                voffstis = SCIshape[0]/2 - stisPos[1] + 0 # vertical offset 
+                hoffstis = SCIshape[1]/2 - stisPos[0] + 2 # horizontal offset
+                #if 1 : print("native voffstis    : ",voffstis)
+                if wedgeletter == "A" and wedgearcsecF == 1.0 and HNAXIS2I ==  316 : 
+                    voffstis = 0
+                    maskL = (0.9, 0.8, -2, -1, maskL[4])
+                if wedgeletter == "A" and wedgearcsecF == 1.0 and HNAXIS2I ==  512 : 
+                    voffstis = 0
+                    maskL    = [1.3, 0.7, -1, 0, 0]
+                if wedgeletter == "A" and wedgearcsecF == 1.0 and HNAXIS2I == 1024 : 
+                    voffstis = 0
+#                if wedgeletter == "A" and wedgearcsecF == 1.8 :
+#                    maskL = (1.8, 0.6, -1, -1, 1)
+#                if wedgeletter == "A" and wedgearcsecF == 1.8 and HNAXIS2I ==  512 :
+#                    maskL = (1.8, 0.6, -1, -1, 1)
+#                    voffstis = 0
+#                if wedgeletter == "A" and wedgearcsecF == 1.8 and HNAXIS2I == 1024 :
+#                    maskL = (2.2, 0.8, 0, 0, 1)
+#                    voffstis = 0
+#                if wedgeletter == "A" and wedgearcsecF == 2.0 and HNAXIS2I ==  512 :
+#                    maskL = (2.2, 0.8, 0, 0, 0)
+#                    voffstis = 0
+#                if wedgeletter == "A" and wedgearcsecF == 2.0 and HNAXIS2I == 1024 :
+#                    maskL = (2.2, 0.8, 0, 0, 0)
+#                    voffstis = 0
+#                if wedgeletter == "A" and wedgearcsecF == 2.5 and HNAXIS2I == 1024 :
+#                    maskL = (2.7, 0.8, 0, 0, 0)
+#                    voffstis = 0
+#                if wedgeletter == "A" and wedgearcsecF == 2.8 and HNAXIS2I == 1024 :
+#                    maskL = (2.9, 0.8, 0, 0, 0)
+#                    voffstis = 0
+                                    
+                #if 1 : print("magic  voffstis    : ",voffstis)
+                if 0 :
+                    print("SCIshape           : ", SCIshape)
+                    print("SCIC2Dshape        : ", SCIC2Dshape)   
+                    print("stisPos            : ", stisPos)    
+                    print("voffstis           : ", voffstis)
+                    print("hoffstis           : ", hoffstis)    
+                    print()
+                # End of getting values for mask creation
+
+                if pyklipB :
+                    #print("SCIC2Dshape, voffstis, hoffstis", SCIC2Dshape, voffstis, hoffstis)
+                    maskFR = createmask (maskL, pyklipB, nmfB, SCIC2Dshape, voffstis, hoffstis) 
+                if nmfB : 
+                    # For NMF, make ONE mask that is as universal to all nmf-bound frames as can be
+                    # (NMF accommodates one mask, passed in on the side.)
+                    maskFR = createmask (maskL, pyklipB, nmfB, (239,239), voffstis, hoffstis, SCIC2Dshape)         
+        
+        
+        
+        
+            parallelTL = [] # parallel Tuple List, a List of Tuples that are going to parallel
+#            #print("kk jj            : ", kk, jj)
+#            dnfn = allFNL[kk][jj]
+#            # dnfn ("DNFN") = 'Directory Name and File Name',
+#            # where Directory is at local level to this script.
+#            # decapitalized because of how frequently it occurs
+#            #print("dnfn             : ", dnfn)
+#            HDUL            = fits.open ( dnfn )
+#            FN              = os.path.basename ( dnfn )
+#            #print("FN               : ", FN)
+#            #directoryPath   = os.path.dirname ( dnfn ) # TODO: Not needed, now.
+#            #print("directoryPath    : ", directoryPath)# TODO: Not needed, now.
+#            split           = os.path.splitext ( os.path.basename ( dnfn ) )
+#            token_          = split[0].split('_')
+#            rtfn            = token_[0] # Root Filename, de-capitalized for frequency
+#            #print("rtfn             : ", rtfn, end="")
+#            print(rtfn, "", end="")
+#            print()
             SUBARRAY             = bool ( HDUL [ 0 ].header[ 'SUBARRAY' ] )
             POSTARG1             = HDUL [ 0 ].header[ 'POSTARG1' ]  
             POSTARG2             = HDUL [ 0 ].header[ 'POSTARG2' ]  
-            PROPAPER             = HDUL [ 0 ].header[ 'PROPAPER' ]  
+#            PROPAPER             = HDUL [ 0 ].header[ 'PROPAPER' ]  
             CENTERA1             = HDUL [ 0 ].header[ 'CENTERA1' ]  
             CENTERA2             = HDUL [ 0 ].header[ 'CENTERA2' ]  
             SIZAXIS1             = HDUL [ 0 ].header[ 'SIZAXIS1' ]  # 1060 for all STIS
@@ -1022,23 +1198,23 @@ def main_function(
             pixelsFromLeft       = math.ceil ( xActual ) # which half left or right?
             pixelsFromBottom     = math.ceil ( yActual ) # which half top or bottom? 
             
-            if 0 : print("native RCRPIX2I",RCRPIX2I)
-            if HNAXIS2I == 80 : 
+            ## if 0 : print("native RCRPIX2I",RCRPIX2I)
+            if wedgeletter == "A" and HNAXIS2I == 80 : 
                 RCRPIX2I = 41
                 RCRPIX2F = 41.0
-            if HNAXIS2I == 316 : 
+            if wedgeletter == "A" and HNAXIS2I == 316 : 
                 RCRPIX2I = 69
                 RCRPIX2F = 69.0
-            if 0 : print("magic  RCRPIX2I",RCRPIX2I) 
+            ## if 0 : print("magic  RCRPIX2I",RCRPIX2I) 
 
             # Get the mask's wedge thickness (which depends on the file header)
-            PROPAPER_2 = PROPAPER.replace("WEDGE","")
-            if   "A" in PROPAPER_2 : 
-                wedgeletter = "A"
-            elif "B" in PROPAPER_2 : 
-                wedgeletter = "B" # Just leave for expansion
-            wedgearcsec = float ( PROPAPER_2.replace ( wedgeletter, "" ) )
-            wedgepixels = wedgearcsec / PLATESCALE
+#            PROPAPER_2 = PROPAPER.replace("WEDGE","")
+#            if   "A" in PROPAPER_2 : 
+#                wedgeletter = "A"
+#            elif "B" in PROPAPER_2 : 
+#                wedgeletter = "B" # Just leave for expansion
+#            wedgearcsecF = float ( PROPAPER_2.replace ( wedgeletter, "" ) )
+#            wedgepixelsF = wedgearcsecF / PLATESCALE
         
             # Get the wcs block to calculate the position angle
             warnings.filterwarnings("ignore",category=wcs.FITSFixedWarning)
@@ -1060,10 +1236,10 @@ def main_function(
             radcPos = stisPos # Default to STIS header ( CRPIX1, CRPIX2 )
             #print("native stisPos    : ",stisPos)
             #print("native radcPos     : ",radcPos)
-            if HNAXIS2I ==  80 : 
-                stisPos = ( CCRPIX1F,  41 )
+            if wedgeletter == "A" and HNAXIS2I ==  80 : 
+                stisPos = ( CCRPIX1F, 41 )
                 radcPos = stisPos
-            if HNAXIS2I == 316 : 
+            if wedgeletter == "A" and HNAXIS2I == 316 : 
                 stisPos = ( CCRPIX1F, 69 )
                 radcPos = stisPos
             #print("magic  stisPos    : ",stisPos)            
@@ -1091,11 +1267,12 @@ def main_function(
             
             # Now we are at the loop that goes over all of the ImageHDUs in any one particular FITS file
             for ii in range ( startatindex, stopbeforeindex, 3 ) :
-                if 1 :
-                    #print("kk, jj, ii, nth  : ", kk, jj, ii, int((ii+2)/3), "** This starts a new frame **")
-                    print(ii,"", end="" )
+#                if 0 :
+#                    #print("kk, jj, ii, nth  : ", kk, jj, ii, int((ii+2)/3), "** This starts a new frame **")
+#                    print(ii,"", end="" )
                     
                 if (rtfn,ii) in excepL :
+                    print("Omitting this frame which is listed in the manual exception list ", rtfn, ii )
                     continue                     
 
                 EXPTIME = HDUL [ ii ].header[ 'EXPTIME'     ]
@@ -1111,7 +1288,7 @@ def main_function(
                      
 
                 parallelT = (
-                    copy.deepcopy(SCIdataFR) ,
+                    copy.deepcopy(SCIdataFR) , #eventually need to copy for serial, not para 
                     copy.deepcopy(ERRdataFR) ,
                     copy.deepcopy(DQ_dataFR) ,
                     rtfn      , 
@@ -1154,7 +1331,7 @@ def main_function(
                                     rjy       ,
                                     cix
                                 )
-                    if 0 : print("\nS pixel check 1    : ", SCIdataFR[120][140])
+                    # if 0 : print("\nS pixel check 1    : ", SCIdataFR[120][140])
 #                    if 1 :
 #                        if kk == 0 and modepix < 1 : # For the case of V-AU-Mic
 #                            SCIdataFR = SCIdataFR / abs(modepix)
@@ -1175,7 +1352,7 @@ def main_function(
                             hdist  = cix - CCRPIX1I
                             radius = math.sqrt ( pow ( vdist, 2 ) + pow ( hdist, 2 ) )
                             SCIdataFR[rjy][cix] = SCIdataFR[rjy][cix] * pow ( radius, plce )
-                    if 0 : print("S pixel check 2    : ", SCIdataFR[120][140])
+                    # if 0 : print("S pixel check 2    : ", SCIdataFR[120][140])
 
                     """
                     Bin Ren, Laurent Pueyo
@@ -1189,7 +1366,7 @@ def main_function(
                     alignment of the STIS images"
                     """
                     # Get radonCenter's determination of the stellar point
-                    radcPos = (0.0,0.0)
+#                    radcPos = (0.0,0.0)
                     if radcB : # radonCenter Boolean
                         radcPos = radonCenter.searchCenter ( 
                             SCIdataFR         ,
@@ -1199,7 +1376,7 @@ def main_function(
                             size_cost   = 7  ,
                             theta       = [45, 135]#, 225, 315]
                         )                    
-                        if 0 : print("S radcPos          : (", rtfn, ii, ")", f2f2(radcPos))
+                        # if 0 : print("S radcPos          : (", rtfn, ii, ")", f2f2(radcPos))
 
                     # TODO: Remove blown out / saturated frames PRIOR to Normalize
                     # It is still possible for there to be frames with median EXPTIME
@@ -1218,21 +1395,21 @@ def main_function(
                     if 1 :
                         SCIdataFR = SCIdataFR / EXPTIME
                         ERRdataFR = ERRdataFR / EXPTIME
-                    if 0 : print("S pixel check 3    : ", SCIdataFR[120][140]) # Cannot do this for 80-high
-                    if 0 : print("S C")
+                    # if 0 : print("S pixel check 3    : ", SCIdataFR[120][140]) # Cannot do this for 80-high
+                    # if 0 : print("S C")
                     checkfornansFR(SCIdataFR)
                     checkforzerorowsFR(SCIdataFR)
                     # Get the amount of shift required to center the subarray onto the star 
                     voff = SCIdataFR.shape[0]/2 - radcPos[1] # vertical offset 
                     hoff = SCIdataFR.shape[1]/2 - radcPos[0] # horizontal offset
-                    if 0 : print("S native voff      : ",voff)
+                    # if 0 : print("S native voff      : ",voff)
                     if SCIdataFR.shape[0] ==  80 : voff = 40.0 - radcPos[1]    
                     if SCIdataFR.shape[0] == 316 : voff = 69.0 - radcPos[1]
-                    if 0 : print("S magic  voff      : ",voff) 
+                    # if 0 : print("S magic  voff      : ",voff) 
                     
                     shiftedSCIdataFR = scipy.ndimage.shift ( SCIdataFR, np.array ( [ voff, hoff ] ) )
                     shiftedERRdataFR = scipy.ndimage.shift ( ERRdataFR, np.array ( [ voff, hoff ] ) )
-                    if 0 : print("S pixel check 4    : ", shiftedSCIdataFR[120][140])
+                    # if 0 : print("S pixel check 4    : ", shiftedSCIdataFR[120][140])
                     if 1:
                         import matplotlib.pyplot as plt
                         plt.figure      ( figsize=[5,5] )
@@ -1258,7 +1435,7 @@ def main_function(
                         size     = (lh,lw) ,
                         wcs      = None # TODO add wcs to this
                     )
-                    if 0 : print("S pixel check 5    : ", shiftedSCIdataFR[120][140])                    
+                    # if 0 : print("S pixel check 5    : ", shiftedSCIdataFR[120][140])                    
                     if SCIdataFR.shape[0] == 316 :
                         SCIC2D = Cutout2D (
                             shiftedSCIdataFR ,
@@ -1266,8 +1443,8 @@ def main_function(
                             size     = (lh,lw) ,
                             wcs      = None # TODO add wcs to this
                         )
-                    if 0 : print("S pixel check 6    : ", shiftedSCIdataFR[120][140]) 
-                    if 0 : print("S D")
+                    # if 0 : print("S pixel check 6    : ", shiftedSCIdataFR[120][140]) 
+                    # if 0 : print("S D")
                     #checkforzerorowsFR(SCIC2D) # TypeError: 'Cutout2D' object is not subscriptable
                     if 1:
                         import matplotlib.pyplot as plt
@@ -1290,8 +1467,8 @@ def main_function(
                             size     = (lh,lw) ,
                             wcs      = None # TODO add wcs to this
                         )                    
-                    if 0 : print("S ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
-                    if 0 : print()
+                    # if 0 : print("S ERRC2D.shape     : (", rtfn, ii, ")", ERRC2D.shape)
+                    # if 0 : print()
 
 
 # PREMASK S                   
@@ -1351,7 +1528,7 @@ def main_function(
                             plt.ylim        ( [ 0, SCIC2D.shape[0]] )
                             plt.title       ( "S before sub of mean")                
                         meanSCIC2Ddata = np.nanmean(SCIC2D.data)
-                        if 0 : print("S meanSCIC2Ddata : ", meanSCIC2Ddata)
+                        # if 0 : print("S meanSCIC2Ddata : ", meanSCIC2Ddata)
                         meanERRC2Ddata = np.nanmean(ERRC2D.data)
                         SCIC2D.data = SCIC2D.data - meanSCIC2Ddata
                         if 0 :
@@ -1363,7 +1540,7 @@ def main_function(
                             plt.title       ( "S after sub of mean")
                         ERRC2D.data = ERRC2D.data - meanERRC2Ddata
                         stddevSCIC2D = np.nanstd(SCIC2D.data)
-                        if 0 : print("S stddevSCIC2D : ", stddevSCIC2D)
+                        # if 0 : print("S stddevSCIC2D : ", stddevSCIC2D)
                         stddevERRC2D = np.nanstd(ERRC2D.data)
                         SCIC2D.data = SCIC2D.data / stddevSCIC2D
                         if 0 :
@@ -1391,21 +1568,21 @@ def main_function(
                     aRC = aFC - bb + SCIC2D.shape[1] # aperture right  column  
 
                     SCIcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
-                    if 0 : print("S pixel check -3    : ", SCIcanvas[120][140])
+                    # if 0 : print("S pixel check -3    : ", SCIcanvas[120][140])
                     if pyklipB and not nmfB : SCIcanvas[:] = np.nan   # Pyklip requires nans  background
                     SCIcanvas [ aBR : aTR , aLC : aRC ] = SCIC2D.data [ bb : - bb , bb : - bb ]
-                    if 0 : print("S pixel check -2    : ", SCIcanvas[120][140])
+                    # if 0 : print("S pixel check -2    : ", SCIcanvas[120][140])
                     ERRcanvas = np.zeros (( hypotenuse, hypotenuse )) # NMF    requires zeros background
                     if pyklipB and not nmfB : ERRcanvas[:] = np.nan   # Pyklip requires nans  background
                     ERRcanvas [ aBR : aTR , aLC : aRC ] = ERRC2D.data [ bb : - bb , bb : - bb ]
-                    if 0 :
-                        import matplotlib.pyplot as plt     
-                        plt.figure      ( figsize=[3,3] )
-                        plt.imshow      ( SCIcanvas.data )
-                        plt.xlim        ( [ 0, SCIcanvas.shape[1]] )
-                        plt.ylim        ( [ 0, SCIcanvas.shape[0]] )                       
-                    if 0 :
-                        center = radcPos # TODO: Check if this is moot after ndshift
+#                    if 0 :
+#                        import matplotlib.pyplot as plt     
+#                        plt.figure      ( figsize=[3,3] )
+#                        plt.imshow      ( SCIcanvas.data )
+#                        plt.xlim        ( [ 0, SCIcanvas.shape[1]] )
+#                        plt.ylim        ( [ 0, SCIcanvas.shape[0]] )                       
+#                    if 0 :
+#                        center = radcPos # TODO: Check if this is moot after ndshift
                     center = (int(hypotenuse/2),int(hypotenuse/2))
 # PREMASK S                   
                     if 1 : 
@@ -1428,7 +1605,7 @@ def main_function(
                 
                 if not useParallelB : #0 : # 1 for serial, 0 for parallel
                     torL   .append(torI) # torI = kk. 'kk' maintains top level dimension.
-                    if 0 : print("S pixel check -1    : ", SCIcanvas[120][140])                    
+                    #if 0 : print("S pixel check -1    : ", SCIcanvas[120][140])                    
                     if kk == 0 :
                         trgSCIL.append(SCIcanvas)
                         trgERRL.append(ERRcanvas)
@@ -1463,7 +1640,7 @@ def main_function(
                 parallelProcessPool.close()
                 parallelProcessPool.join()
                 parallelProcessResult = [ task.get() for task in tasks ]
-                print("len(parallelProcessResult) : ", len(parallelProcessResult))
+                #if 0 : print("len(parallelProcessResult) : ", len(parallelProcessResult))
             if useParallelB : # 1 : # 0 for serial, 1 for parallel
                 for ii in range ( len ( parallelProcessResult ) ) :
                     returnT = parallelProcessResult[ii]
@@ -1480,7 +1657,7 @@ def main_function(
                         premaskcanvas = returnT [ 5 ]
                         rtfnii        = returnT [ 6 ]  
                     torL   .append(torI) # torI = kk. 'kk' maintains top level dimension.
-                    if 0 : print("P pixel check -1    : ", SCIcanvas[120][140])                     
+                    #if 0 : print("P pixel check -1    : ", SCIcanvas[120][140])                     
                     if kk == 0 :
                         trgSCIL.append(SCIcanvas)
                         trgERRL.append(ERRcanvas)
@@ -1599,19 +1776,19 @@ class stishubbleData(Data):
         print("SFR                : ", SFR)
         print("NFR                : ", NFR)
         
-        if 0 :
-            torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR = main_function(
-                    trgFNL  ,
-                    refFNL  ,
-                    maskL   ,
-                    maskB   ,
-                    radcB   ,
-                    SFR     ,
-                    NFR     ,
-                    excepL  , 
-                    pyklipB ,
-                    nmfB
-                ) 
+#        if 0 :
+#            torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR = main_function(
+#                    trgFNL  ,
+#                    refFNL  ,
+#                    maskL   ,
+#                    maskB   ,
+#                    radcB   ,
+#                    SFR     ,
+#                    NFR     ,
+#                    excepL  , 
+#                    pyklipB ,
+#                    nmfB
+#                ) 
 
         if 1 :
             torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR, premask_RA, premaskFNL = main_function(
@@ -1632,9 +1809,9 @@ class stishubbleData(Data):
             input_SCI = np.concatenate ( ( trgSCIRA,  refSCIRA ) )
             input_ERR = np.concatenate ( ( trgERRRA,  refERRRA ) )
         # TODO: DIAG AND DEVEL ONLY
-        if 0 :
-            input_SCI = trgSCIRA
-            input_ERR = trgERRRA
+#        if 0 :
+#            input_SCI = trgSCIRA
+#            input_ERR = trgERRRA
 
         
         # TODO: add refSCIRA for pyklip
