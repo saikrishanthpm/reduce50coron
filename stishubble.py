@@ -11,7 +11,7 @@ import numpy as np
 import astropy.io.fits as fits
 from astropy import wcs
 import math
-import centerRadon.radonCenter as radonCenter
+import radonCenter
 import scipy
 import os
 from astropy.nddata import Cutout2D
@@ -24,6 +24,7 @@ from astropy import stats
 from pyklip.klip import rotate as pyklipRotate
 #import psutil
 from multiprocessing import Pool
+import logging as log
 #https://www.stsci.edu/hst/instrumentation/stis/observing-strategies/available-modes/stis-bar5
 #"The wedges vary in width from 0.5 to 3.0 arcseconds over their 50 arcseconds length"
 #SLOPE     = 0 # In case you need a vertical rectangle over the wedge
@@ -109,7 +110,7 @@ def parallelfunction (
     center determination method described in Ref. 54 after the above-mentioned
     median filtering. We took the SCI extension data, start center searching from
     the instrumental center given by its CRPIX1 and CRPIX2 header values; to make
-    use of the 45 degree and 135 degree major diffraction spikes (Fig. 3) for the
+    use of the 45 degree and 135 degree major diffraction spikes (Fig. 3) for the
     alignment of the STIS images"
     """
     # Get radonCenter's determination of the stellar point
@@ -1247,8 +1248,18 @@ def main_function(
 
             # Get the mode of EXPTIME, prior to taking data from frames
             exptimeL=[]
+
+            
             for ii in range ( 1, len ( HDUL ), 3 ) : # SCI only
-                exptimeL.append ( HDUL [ ii ].header[ 'EXPTIME' ] )
+                try:
+                    exptimeL.append ( HDUL [ ii ].header[ 'EXPTIME' ] )
+                    #print("good:"dnfn )
+                except Exception as err:
+                    log.debug(err)
+                    log.debug("err:")
+                    log.debug(dnfn )
+
+                    continue
             exptimeMedian = statistics.median ( exptimeL )
             
             while ( SFR - 1 ) % 3 != 0 :
@@ -1272,12 +1283,12 @@ def main_function(
 #                    print(ii,"", end="" )
                     
                 if (rtfn,ii) in excepL :
-                    print("Omitting this frame which is listed in the manual exception list ", rtfn, ii )
+                    log.info("Omitting this frame which is listed in the manual exception list ", rtfn, ii )
                     continue                     
 
                 EXPTIME = HDUL [ ii ].header[ 'EXPTIME'     ]
                 if EXPTIME > exptimeMedian :
-                    print("\n {EXPTIME>exptimeMedian;dropping frame ", ii, "}") 
+                    log.info("\n {EXPTIME>exptimeMedian;dropping frame ", ii, "}") 
                     continue
 
 # REQUEST FOR CENTERS FROM HEADER GOES HERE (removed for now)
@@ -1362,7 +1373,7 @@ def main_function(
                     center determination method described in Ref. 54 after the above-mentioned
                     median filtering. We took the SCI extension data, start center searching from
                     the instrumental center given by its CRPIX1 and CRPIX2 header values; to make
-                    use of the 45 degree and 135 degree major diffraction spikes (Fig. 3) for the
+                    use of the 45 degree and 135 degree major diffraction spikes (Fig. 3) for the
                     alignment of the STIS images"
                     """
                     # Get radonCenter's determination of the stellar point
@@ -1514,7 +1525,7 @@ def main_function(
                     "In order to reduce the color-mismatch which creates unrealistic
                     halos (e.g., Fig. 8), for each target readout, we normalized itself
                     and all the PSF readouts by first applying an algorithmic mask
-                    to block the physical wedges and the primary di raction spikes,
+                    to block the physical wedges and the primary di raction spikes,
                     then subtracting the mean and dividing the standard deviation of
                     each readout" [sic]
                     """
@@ -1689,13 +1700,13 @@ def main_function(
     cenRA    = np.array(cenL)
 # PREMASK    
     premask_RA = np.array(premask_L)
-    print("torRA   .shape     : ", torRA   .shape)
-    print("trgSCIRA.shape     : ", trgSCIRA.shape)
-    print("refSCIRA.shape     : ", refSCIRA.shape)
-    print("pasRA   .shape     : ", pasRA   .shape)
-    print("cenRA   .shape     : ", cenRA   .shape)
+    log.debug("torRA   .shape     : ", torRA   .shape)
+    log.debug("trgSCIRA.shape     : ", trgSCIRA.shape)
+    log.debug("refSCIRA.shape     : ", refSCIRA.shape)
+    log.debug("pasRA   .shape     : ", pasRA   .shape)
+    log.debug("cenRA   .shape     : ", cenRA   .shape)
 # PREMASK    
-    print("premask_RA   .shape     : ", premask_RA   .shape)
+    log.debug("premask_RA   .shape     : ", premask_RA   .shape)
     
     # DIAG , DEVEL , TESTING : will be removed
 #    if nmfB : 
@@ -1768,13 +1779,13 @@ class stishubbleData(Data):
     
         super(stishubbleData, self).__init__()
         
-        print("trgFNL             : ", trgFNL)
-        print("refFNL             : ", refFNL)
-        print("maskL              : ", maskL)
-        print("maskB              : ", maskB)
-        print("radcB              : ", radcB)
-        print("SFR                : ", SFR)
-        print("NFR                : ", NFR)
+        log.debug("trgFNL             : ", trgFNL)
+        log.debug("refFNL             : ", refFNL)
+        log.debug("maskL              : ", maskL)
+        log.debug("maskB              : ", maskB)
+        log.debug("radcB              : ", radcB)
+        log.debug("SFR                : ", SFR)
+        log.debug("NFR                : ", NFR)
         
 #        if 0 :
 #            torRA, trgSCIRA, trgERRRA, refSCIRA, refERRRA, pasRA, cenRA, FRFNL, maskFR = main_function(
@@ -1834,22 +1845,22 @@ class stishubbleData(Data):
         # the present system is to truncate them when time to isolate targets
         filenames  = FRFNL
         if 1 :
-            print("torRA              :  [", end="" )
-            for tr in torRA : print(tr, ", ", end="") # SCIcanvas 
-            print("]")                    
-            print("input_SCI          :  [", end="" )
-            for fr in input_SCI : print(fr[120][140], ", ", end="") # SCIcanvas 
-            print("]")    
-            print("input_ERR          :  [", end="" )
-            for fr in input_ERR : print(fr[120][140], ", ", end="") # SCIcanvas 
-            print("]")    
-            print("centers            :  [", end="" )
-            for cen in centers   : print("(", f2f2(cen),  ")", end="")
-            print("]")
-            print("parangs            :  [", end="" )
-            for pa in parangs    : print(f2(pa),        ", ", end="")
-            print("]")
-            print("filenames          : ", filenames)
+            log.debug("torRA              :  [")
+            for tr in torRA : log.debug(tr+", ") # SCIcanvas 
+            log.debug("]")                    
+            log.debug("input_SCI          :  [")
+            for fr in input_SCI : log.debug(fr[120][140]+", " ) # SCIcanvas 
+            log.debug("]")    
+            log.debug("input_ERR          :  [")
+            for fr in input_ERR : log.debug(fr[120][140]+ ", ") # SCIcanvas 
+            log.debug("]")    
+            log.debug("centers            :  [" )
+            for cen in centers   : log.debug("("+f2f2(cen)+  ")")
+            log.debug("]")
+            log.debug("parangs            :  [")
+            for pa in parangs    : log.debug(f2(pa))
+            log.debug("]")
+            log.debug("filenames          : :"+ filenames)
 
 
 
