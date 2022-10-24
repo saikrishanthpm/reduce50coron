@@ -12,7 +12,7 @@ IncludeCmd: yes
     conda install --yes -c astropy jupyter  nb_conda_kernels matplotlib scipy 
     conda clean --index-cache --tarballs --packages --yes
     pip install psutil
-    
+    pip install astroquery
     #install center radon:
     wget https://github.com/seawander/centerRadon/archive/refs/tags/v1.0.tar.gz \
             && tar -xf v1.0.tar.gz\
