@@ -7,3 +7,21 @@ To compile into a singularity container:
 to interact with the built container: `singularity shell 50coron `
 
 
+go to https://archive.stsci.edu/hst/search.php
+ 
+request all data with 50CORON as the aperture for staging
+
+to download data:
+
+    import ftplib # https://archive.stsci.edu/ftp.html
+    ftps = ftplib.FTP_TLS('archive.stsci.edu')
+    ftps.login(user="anonymous", passwd="email")
+    ftps.prot_p() # This is a really good idea :)
+    ftps.cwd('stage')
+    ftps.cwd("/stage/anonymous/anonymous97729") # stagedir is something like 'anonymous/anonyumous12345'
+
+    filenames = ftps.nlst()
+    for filename in filenames:
+        print("getting " + filename)
+        with open(filename, 'wb') as fp: 
+            ftps.retrbinary('RETR {}'.format(filename), fp.write)
