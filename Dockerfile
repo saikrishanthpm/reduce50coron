@@ -17,6 +17,7 @@ RUN apt-get update --yes && \
     unzip \
     vim-tiny \
     python3-pip \
+    curl \
     # git-over-ssh
     openssh-client \
     # less is needed to run help in R

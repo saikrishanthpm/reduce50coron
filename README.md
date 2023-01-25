@@ -4,7 +4,7 @@ To run:
 1. Download into local directory using git: 
 'git clone https://github.com/saikrishanthpm/reduce50coron.git'
 2. Navigate into downloaded directory: 
-'cd '
+'cd reduce50coron'
 3. Compile docker image into container:
 'docker build -t pipeline .'
 4. Run docker container:
