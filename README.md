@@ -11,7 +11,7 @@ To run:
 3. Compile docker image into container:
 `docker build -t pipeline .`
 4. Run docker container:
-`docker run -p 8888:8888 -v path/to/reduce50coron/:/home/jovyan pipeline`
+`docker run -p 8888:8888 -v /path/to/reduce50coron/:/home/jovyan pipeline`
 5. You should have a link that is generated after the previous command. Copy and paste it into a web brwoser. 
 6. Once Jupyter Lab is open, open a terminal window inside the container
 7. In the terminal, type:
