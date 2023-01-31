@@ -22,8 +22,8 @@ To run:
 7. In the terminal, type:
 `bash data_download_scripts/del_eri_ref.sh` followed by
 `bash data_download_scripts/eps_eri_trg.sh`
-8. After this you can run the Jupyter Notebook called Pipeline.ipynb
-9. The directories `del_eri_ref` and `eps_eri_trg` contain all 50CORON files for Delta Eridani and Epsilon Eridani. This is a good starting point to test that the pipeline is working and producing reasonable results. 
+8. The directories `del_eri_ref` and `eps_eri_trg` contain all 50CORON files for Delta Eridani and Epsilon Eridani. This is a good starting point to test that the pipeline is working and producing reasonable results. 
+9. After this you can run the Jupyter Notebook called Pipeline.ipynb
 
 ## Instructions for Singularity (recommended for running on HPC):
 
