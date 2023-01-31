@@ -32,10 +32,10 @@ To run:
 `git clone https://github.com/saikrishanthpm/reduce50coron.git`
 3. Navigate into downloaded directory: 
 `cd reduce50coron`
-4. Build Singularity image from definition file:
+4. Edit the last line of the def file to reflect the path to reduce50coron. 
+5. Build Singularity image from definition file:
 `singularity build stispipeline.sif stispipeline.def`
-5. Run singularity container as shell from image:
+6. Run singularity container as shell from image:
 `singularity shell stispipeline.sif`
-6. Execute `bash data_download_scripts/eps_eri_trg.sh` and `bash data_download_scripts/wedgea1_0.sh`. This will download all of WEDGE A1.0 and Epsilon Eridani files. Alternately, instead of downloading WEDGE A1.0, one can also only download Delta Eridani reference files for troubleshooting using `bash data_download_scripts/del_eri_ref.sh`.
-7. To reproduce the figure in the paper, change the reference directory to `wedgea1_0` in the pipeline jupyter notebbok, use 90 components, and set maxiters to 1E4. For troubleshooting, if Delta Eridani files have been downloaded, continue with the default values set. 
-
+7. Execute `bash data_download_scripts/eps_eri_trg.sh` and `bash data_download_scripts/wedgea1_0.sh`. This will download all of WEDGE A1.0 and Epsilon Eridani files. Alternately, instead of downloading WEDGE A1.0, one can also only download Delta Eridani reference files for troubleshooting using `bash data_download_scripts/del_eri_ref.sh`.
+8. To reproduce the figure in the paper, change the reference directory to `wedgea1_0` in the pipeline jupyter notebbok, use 90 components, and set maxiters to 1E4. For troubleshooting, if Delta Eridani files have been downloaded, continue with the default values set. 
