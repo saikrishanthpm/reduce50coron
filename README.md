@@ -7,6 +7,8 @@ This will work on Linux and MacOS natively, and on Windows with WSL (https://lea
 Prerequisites:
 1. Docker 
 2. Git
+3. 
+For a list of all STIS coronagraphic images: https://www.stsci.edu/~STIS/monitors/tdf/stis_tdf_coronagraphic.html
 
 To run:
 1. Download into local directory using git: 
